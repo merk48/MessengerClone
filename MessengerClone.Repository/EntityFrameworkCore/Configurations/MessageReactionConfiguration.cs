@@ -1,0 +1,38 @@
+﻿using MessengerClone.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+
+namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
+{
+    public class MessageReactionConfiguration : IEntityTypeConfiguration<MessageReaction>
+    {
+        public void Configure(EntityTypeBuilder<MessageReaction> builder)
+        {
+            builder.HasKey(mr => new { mr.UserId, mr.MessageId });
+
+            builder.Property(mr => mr.ReactionType)
+                .HasConversion<string>() //enMessageReactionType
+                .IsRequired();
+
+            builder.Property(mr => mr.CreatedAt)
+             .IsRequired();
+
+            builder
+                .HasOne(mr => mr.User)
+                .WithMany(u => u.MessageReactions)
+                .HasForeignKey(mr => mr.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder
+                .HasOne(mr => mr.Message)
+                .WithMany(m => m.MessageReactions)
+                .HasForeignKey(mr => mr.MessageId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            builder.ToTable("MessageReactions");
+        }
+    }
+
+
+}
+
