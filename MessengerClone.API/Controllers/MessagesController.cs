@@ -1,4 +1,5 @@
 ﻿using MessengerClone.Domain.Abstractions;
+using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.Messages.DTOs;
@@ -10,7 +11,6 @@ using static MessengerClone.API.Response.ApiResponseHelper;
 
 namespace MessengerClone.API.Controllers
 {
-    [AllowAnonymous]
     [Route("api/chats/{chatId}/messages")]
     [ApiController]
     public class MessagesController(IUserContext _userContext ,IMessageService _messageService) : ControllerBase
@@ -71,14 +71,14 @@ namespace MessengerClone.API.Controllers
 
 
         [HttpGet("latest", Name = "GetLatestMessageInChatAsync")]
-        public async Task<IActionResult> GetLatestMessageInChatAsync([FromRoute] int chatId)
+        public async Task<IActionResult> GetLatestMessageInChatAsync([FromRoute] int chatId, CancellationToken cancellationToken)
         {
             try
             {
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _messageService.GetLatestMessageInChatAsync(chatId, _userContext.UserId);
+                var result = await _messageService.GetLatestMessageInChatAsync(chatId, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
                     ? SuccessResponse(result.Data, $"Latest chat message retrieved successfully.")
@@ -102,10 +102,10 @@ namespace MessengerClone.API.Controllers
         {
             try
             {
-                //if (_userContext.UserId <= 0)
-                //    return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
+                if (_userContext.UserId <= 0)
+                    return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _messageService.AddMessageAsync(dto,1, chatId, cancellationToken);
+                var result = await _messageService.AddMessageAsync(dto, _userContext.UserId, chatId, cancellationToken);
 
                 return result.Succeeded
                     ? CreatedResponse("GetMessageByIdForUserAsync", new { chatId = chatId, id = result.Data!.Id }, result.Data, "Message added successfully.")
@@ -124,8 +124,8 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpPatch("{id:int}", Name = "PinOrUnpinMessageAsync")]
-        public async Task<IActionResult> PinUnpinMessageAsync(int Id, [FromBody]PinUnPinMessageDto dto)
+        [HttpPatch("{id:int}/pin-toggle", Name = "PinOrUnpinMessageAsync")]
+        public async Task<IActionResult> PinUnpinMessageAsync([FromRoute] int Id, [FromRoute] int chatId, [FromBody]PinUnPinMessageDto dto, CancellationToken cancellationToken)
         {
             try
             {
@@ -135,9 +135,9 @@ namespace MessengerClone.API.Controllers
                 Result<MessageDto> result = new();
                 
                 if(dto.IsPinned)
-                    result = await _messageService.PinMessageAsync(Id, _userContext.UserId);
+                    result = await _messageService.PinMessageAsync(Id, chatId, _userContext.UserId, cancellationToken);
                 else
-                    result = await _messageService.UnPinMessageAsync(Id, _userContext.UserId);
+                    result = await _messageService.UnPinMessageAsync(Id, chatId, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
                         ? SuccessResponse(result.Data, $"Message {(dto.IsPinned ? "pinned" : "unpinned")} successfully.")
@@ -156,15 +156,15 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpDelete( Name = "DeleteMessage")]
-        public async Task<IActionResult> DeleteMessageAsync([FromRoute] int chatId)
+        [HttpDelete("{id:int}", Name = "DeleteMessage")]
+        public async Task<IActionResult> DeleteMessageAsync([FromRoute] int chatId, [FromRoute] int Id, CancellationToken cancellationToken)
         {
             try
             {
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _messageService.DeleteMessageAsync(chatId, _userContext.UserId);
+                var result = await _messageService.DeleteMessageAsync(Id,chatId, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
                     ? SuccessResponse(result.Data, $"Message deleted successfully.")
@@ -183,18 +183,18 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpPatch(Name = "UndoDeleteMessage")]
-        public async Task<IActionResult> UndoDeleteMessageAsync([FromRoute] int chatId)
+        [HttpPatch("{id:int}/undo-delete", Name = "UndoDeleteMessage")]
+        public async Task<IActionResult> UndoDeleteMessageAsync([FromRoute] int chatId, [FromRoute] int Id, CancellationToken cancellationToken)
         {
             try
             {
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _messageService.UndoDeleteMessageAsync(chatId, _userContext.UserId);
+                var result = await _messageService.UndoDeleteMessageAsync(Id, chatId, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
-                    ? SuccessResponse(result.Data, $"Deleted message retrieved successfully.")
+                    ? SuccessResponse(result.Data, $"Deleted message restored successfully.")
                     : StatusCodeResponse(StatusCodes.Status500InternalServerError, "ALTERATION_ERROR", result.ToString());
             }
             catch (HttpRequestException ex)

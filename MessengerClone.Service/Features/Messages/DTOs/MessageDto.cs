@@ -14,6 +14,7 @@ namespace MessengerClone.Service.Features.DTOs
         public MediaAttachmentDto? Attachment { get; set; }
         public enMessageType Type { get; set; }
         public bool IsDeleted { get; set; }
+        public bool IsPinned { get; set; }
         public DateTime SentAt { get; set; }
         public UserDto Sender { get; set; } = null!;
         public List<MessageStatusDto> MessageInfo { get; set; } = new();
