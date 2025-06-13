@@ -1,12 +1,11 @@
 ﻿using AutoMapper;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.Entities.Identity;
-using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.Chats.DTOs;
-using MessengerClone.Service.Features.Chats.Interfaces;
-using MessengerClone.Service.Features.Messages.Interfaces;
+using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.DTOs;
+using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using System;
 
@@ -14,6 +13,22 @@ namespace MessengerClone.Service.Features.General.Helpers
 {
     public static class MapperHelper
     {
+        public static async Task<MessageDto> BuildMessageDto(Message message, IUserService _userService, IMapper _mapper, CancellationToken cancellationToken)
+        {
+            var isLockedResult = await _userService.IsLockedOutAsync(message.Sender, cancellationToken);
+            if (!isLockedResult.Succeeded)
+                throw new InvalidOperationException("User lock out status fetch failed.");
+
+            var rolesResult = await _userService.GetRolesAsync(message.Sender, cancellationToken);
+            if (!rolesResult.Succeeded)
+                throw new InvalidOperationException("User roles fetch failed.");
+
+            return _mapper.Map<MessageDto>(message, opt => {
+                opt.Items["IsLocked"] = isLockedResult.Data;
+                opt.Items["Roles"] = rolesResult.Data;
+            });
+        }
+
         public static async Task<UserDto> BuildUserDto(ApplicationUser user, UserManager<ApplicationUser> _userService, IMapper _mapper)
         {
             var isLocked = await _userService.IsLockedOutAsync(user);
