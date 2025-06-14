@@ -5,6 +5,7 @@ using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.Users.Interfaces;
 using MessengerClone.Service.Features.Users.Services;
 using Microsoft.AspNetCore.Http;
+using System.Data;
 using System.Text.RegularExpressions;
 
 namespace MessengerClone.Service.Features.Auth.Validators
@@ -43,7 +44,7 @@ namespace MessengerClone.Service.Features.Auth.Validators
 
             RuleFor(x => x.Roles)
                 .NotEmpty().WithMessage("At least one role must be specified.")
-                .Must(list => list.All(r => !string.IsNullOrWhiteSpace(r)))
+                .Must(list => list.All(r => !string.IsNullOrWhiteSpace(r.ToString())))
                     .WithMessage("Roles cannot contain empty values.");
 
             When(x => x.ProfileImage != null, () =>

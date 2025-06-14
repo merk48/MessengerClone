@@ -1,4 +1,6 @@
-﻿namespace MessengerClone.Service.Features.Users.DTOs
+﻿using MessengerClone.Domain.Utils.Enums;
+
+namespace MessengerClone.Service.Features.Users.DTOs
 {
     public class UserDto
     {
@@ -11,6 +13,6 @@
         public string Username { get; set; } = null!;
         public string? ProfileImageUrl { get; set; }
         public bool locked { get; set; }
-        public List<string> Roles { get; set; } = null!;
+        public List<enAppUserRoles> Roles { get; set; } = null!;
     }
 }

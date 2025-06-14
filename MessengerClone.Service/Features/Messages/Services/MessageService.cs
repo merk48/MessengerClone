@@ -28,10 +28,15 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var memberInChatResult = await _memeberService.IsUserMemberInChat(chatId,currentUserId);
+                var memberInChatResult = await _memeberService.IsUserMemberInChatAsync(chatId,currentUserId);
 
-                if(!memberInChatResult.Succeeded)
-                    return Result<DataResult<MessageDto>>.Failure(memberInChatResult.Errors); 
+                if (!memberInChatResult.Succeeded)
+                {
+                    return Result<DataResult<MessageDto>>.Failure(memberInChatResult.ToString());
+                }
+
+                if (!memberInChatResult.Data)
+                    return Result<DataResult<MessageDto>>.Failure("User is not a member of this chat, can't be send a message in it!");
 
                 if (page == null) size = 1;
                 if(size == null) size = 50;
@@ -170,11 +175,15 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             {
                 cancellationToken.ThrowIfCancellationRequested();
                
-                var userIsMemberResult = await _memeberService.IsUserMemberInChat(chatId, senderId);
+                var userIsMemberResult = await _memeberService.IsUserMemberInChatAsync(chatId, senderId);
                 if (!userIsMemberResult.Succeeded)
                 {
-                    return Result<MessageDto>.Failure("User is not a member of this chat, can't be send a message in it!");
+                    return Result<MessageDto>.Failure(userIsMemberResult.ToString());
                 }
+
+                if(!userIsMemberResult.Data)
+                    return Result<MessageDto>.Failure("User is not a member of this chat, can't be send a message in it!");
+
 
                 var startTrResult = await _unitOfWork.StartTransactionAsync();
 

@@ -183,7 +183,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to lock an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be locked out.");
@@ -245,7 +245,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to unlock an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be unlocked out.");
@@ -499,7 +499,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to delete an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be deleted.");

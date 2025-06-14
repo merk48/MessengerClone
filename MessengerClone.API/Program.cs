@@ -206,10 +206,12 @@ namespace MessengerClone
             .AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.TypeNameHandling = TypeNameHandling.Auto;
-            }).AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter()); // 👈 This is key
             });
+            //.AddJsonOptions(options =>
+            // {
+            //     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            // });
 
 
 
