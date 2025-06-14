@@ -5,7 +5,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.DTOs
 {
     public class AddAttachmentDto
     {
-        public IFormFile Attachment { get; set; } = null!;
-        public enMediaType FileType { get; set; }
+        public IFormFile? Attachment { get; set; } = null!;
+        public enMediaType? FileType { get; set; }
     }
 }

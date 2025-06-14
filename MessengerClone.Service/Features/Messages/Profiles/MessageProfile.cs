@@ -23,7 +23,9 @@ namespace MessengerClone.Service.Features.Messages.Profiles
                 .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt));
 
             CreateMap<AddMessageDto, Message>()
-                .ForMember(dest => dest.Attachment, opt => opt.Ignore());
+                .ForMember(dest => dest.Attachment, opt => opt.Ignore())
+                .ForMember(dest => dest.SenderId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["SenderId"]))
+                  .ForMember(dest => dest.ChatId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["ChatId"]));
 
         }
     }

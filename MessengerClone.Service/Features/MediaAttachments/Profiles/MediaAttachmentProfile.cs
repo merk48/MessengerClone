@@ -8,7 +8,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Profiles
     {
         public MediaAttachmentProfile()
         {
-            CreateMap<MediaAttachment, AttachmentDto>();
+            CreateMap<MediaAttachment, MediaAttachmentDto>();
 
             CreateMap<AddAttachmentDto, MediaAttachment>()
                 .ForMember(dest => dest.AttachmentUrl,

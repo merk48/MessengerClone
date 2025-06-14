@@ -53,8 +53,6 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
 
             builder.HasIndex(m => m.CreatedAt);
 
-            builder.HasQueryFilter(m => !m.IsDeleted);
-
             builder.ToTable("Messages");
         }
     }
