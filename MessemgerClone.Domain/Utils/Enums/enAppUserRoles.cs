@@ -2,6 +2,6 @@
 
 public enum enAppUserRoles
 {
-    Admin ,
+    Admin = 1,
     Member ,
 }

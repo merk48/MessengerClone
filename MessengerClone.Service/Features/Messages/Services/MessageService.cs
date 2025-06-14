@@ -35,7 +35,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<DataResult<MessageDto>>.Failure(memberInChatResult.ToString());
                 }
 
-                if (memberInChatResult.Data)
+                if (!memberInChatResult.Data)
                     return Result<DataResult<MessageDto>>.Failure("User is not a member of this chat, can't be send a message in it!");
 
                 if (page == null) size = 1;
@@ -181,7 +181,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure(userIsMemberResult.ToString());
                 }
 
-                if(userIsMemberResult.Data)
+                if(!userIsMemberResult.Data)
                     return Result<MessageDto>.Failure("User is not a member of this chat, can't be send a message in it!");
 
 
