@@ -134,13 +134,13 @@ namespace MessengerClone.API.Controllers
 
                 Result<MessageDto> result = new();
                 
-                if(dto.IsPinned)
+                if(dto.Pin)
                     result = await _messageService.PinMessageAsync(Id, chatId, _userContext.UserId, cancellationToken);
                 else
                     result = await _messageService.UnPinMessageAsync(Id, chatId, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
-                        ? SuccessResponse(result.Data, $"Message {(dto.IsPinned ? "pinned" : "unpinned")} successfully.")
+                        ? SuccessResponse(result.Data, $"Message {(dto.Pin ? "pinned" : "unpinned")} successfully.")
                         : StatusCodeResponse(StatusCodes.Status500InternalServerError, "ALTERATION_ERROR", result.ToString());
             }
             catch (HttpRequestException ex)
