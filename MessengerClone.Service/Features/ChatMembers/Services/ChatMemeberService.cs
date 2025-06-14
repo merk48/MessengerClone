@@ -1,15 +1,12 @@
 ﻿using AutoMapper;
-using AutoMapper.Execution;
-using MessengerClone.Domain.Common.Interfaces;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.ChatMembers.DTOs;
-using MessengerClone.Service.Features.Chats.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
-using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace MessengerClone.Service.Features.ChatMembers.Services
 {
@@ -19,10 +16,11 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
         {
             try
             {
-                var entity = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == userId && x.ChatId == chatId);
+                var entity = await _unitOfWork.Repository<ChatMember>()
+                    .GetAsync(x => x.UserId == userId && x.ChatId == chatId, include: x => x.Include(x => x.User));
 
                 if (entity == null)
-                    return Result<ChatMemberDto>.Failure("Chat member not found");
+                    return Result<ChatMemberDto>.Failure("User is not a member of this chat");
 
                 var memberDto = _mapper.Map<ChatMemberDto>(entity);
 
@@ -36,30 +34,44 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
             }
         }
 
-        public async Task<Result> IsUserMemberInChat(int chatId, int currentUserId)
+        public async Task<Result<bool>> IsUserMemberInChatAsync(int chatId, int currentUserId)
         {
             try
             {
                 bool userExsists = await _unitOfWork.Repository<ChatMember>()
                     .GetAsync(m => m.UserId == currentUserId && m.ChatId == chatId) != null;
 
-                return userExsists
-                    ? Result.Success()
-                    : Result.Failure("User is not a member of this chat");
+                return Result<bool>.Success(userExsists);
 
             }
             catch (Exception)
             {
                 //Log.Error(ex.Message);
-                return Result.Failure("Failed to retrieve this chat from the database"); ;
+                return Result<bool>.Failure("Failed to retrieve this chat from the database"); ;
             }
         }
 
-        public async Task<Result<ChatMemberDto>> AddMemberToChatAsync(AddChatMemberDto dto)
+        public async Task<Result<ChatMemberDto>> AddMemberToChatAsync(AddChatMemberDto dto, int chatId)
         {
             try
             {
-                var entity = _mapper.Map<ChatMember>(dto);
+                //var exsistingEntity = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == userId && x.ChatId == chatId, include: x => x.Include(x => x.User));
+
+                //if (exsistingEntity is not null)
+                //{
+                //    var exsistingChatMemberDtoResult = _mapper.Map<ChatMemberDto>(exsistingEntity);
+                //    return Result<ChatMemberDto>.Success(exsistingChatMemberDtoResult.Data);
+                //}
+
+                var entity = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == dto.UserId && x.ChatId == chatId);
+
+                if (entity is not null)
+                        return Result<ChatMemberDto>.Failure("User is already a member in this chat");
+
+                entity = _mapper.Map<ChatMember>(dto, opt =>
+                {
+                    opt.Items["ChatId"] = chatId;
+                });
 
                 await _unitOfWork.Repository<ChatMember>().AddAsync(entity);
 
@@ -68,9 +80,11 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
                 if (!saveResult.Succeeded)
                     return Result<ChatMemberDto>.Failure("Failed to save chat member.");
 
-                var chatMemberDto = _mapper.Map<ChatMemberDto>(entity);
+                var chatMemberDtoResult = await GetMemberInChatAsync(entity.UserId, entity.ChatId);
+                if (!chatMemberDtoResult.Succeeded)
+                    return Result<ChatMemberDto>.Failure(chatMemberDtoResult.ToString());
 
-                return Result<ChatMemberDto>.Success(chatMemberDto);
+                return Result<ChatMemberDto>.Success(chatMemberDtoResult.Data);
             }
             catch (Exception ex)
             {
@@ -78,13 +92,16 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
                 return Result<ChatMemberDto>.Failure($"An unexpected error occurred: {ex.Message}");
             }
         }
-
-        public async Task<Result<DataResult<ChatMemberDto>>> AddRangeOfMembersToChatAsync(IEnumerable<AddChatMemberDto> dto)
+        
+        public async Task<Result<DataResult<ChatMemberDto>>> AddRangeOfMembersToChatAsync(IEnumerable<AddChatMemberDto> dtos, int chatId)
         {
             try
             {
                 // map to chatMemeber
-                var entities = _mapper.Map<List<ChatMember>>(dto);
+                var entities = _mapper.Map<List<ChatMember>>(dtos, opt =>
+                {
+                    opt.Items["ChatId"] = chatId;
+                });
 
                 await _unitOfWork.Repository<ChatMember>().AddRangeAsync(entities);
 
@@ -93,7 +110,16 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
                 if (!saveResult.Succeeded)
                     return Result<DataResult<ChatMemberDto>>.Failure("Failed to save chat members.");
 
-                var chatMemberDtos = _mapper.Map<List<ChatMemberDto>>(entities);
+               
+                List<ChatMemberDto> chatMemberDtos = new();
+                foreach (var member in entities)
+                {
+                    var memberDtoResult = await GetMemberInChatAsync(member.UserId, member.ChatId);
+                    if (!memberDtoResult.Succeeded)
+                        return Result<DataResult<ChatMemberDto>>.Failure(memberDtoResult.ToString());
+
+                    chatMemberDtos.Add(memberDtoResult.Data!);
+                }
 
                 return Result<DataResult<ChatMemberDto>>.Success(new DataResult<ChatMemberDto>
                 {
@@ -137,14 +163,15 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
         {
             try
             {
-                var member = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == userId && x.ChatId == chatId);
+                var entity = await _unitOfWork.Repository<ChatMember>()
+                    .GetAsync(x => x.UserId == userId && x.ChatId == chatId, include: x => x.Include(x => x.User));
 
-                if (member == null)
+                if (entity == null)
                     return Result<ChatMemberDto>.Failure("Member not found!");
 
-                member.ChatRole = dto.ChatRole;
+                entity.ChatRole = dto.ChatRole;
 
-                var memberDto = _mapper.Map<ChatMemberDto>(member);
+                var memberDto = _mapper.Map<ChatMemberDto>(entity);
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
 

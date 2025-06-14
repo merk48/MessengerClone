@@ -1,9 +1,11 @@
-﻿namespace MessengerClone.Service.Features.ChatMembers.DTOs
+﻿using MessengerClone.Domain.Utils.Enums;
+
+namespace MessengerClone.Service.Features.ChatMembers.DTOs
 {
     public class AddChatMemberDto
     {
-        public int ChatId { get; set; }
         public int UserId { get; set; }
+        public enChatRole ChatRole { get; set; }
     }
-    
+
 }

@@ -43,7 +43,7 @@ namespace MessengerClone.API.Hubs.Implementations
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var addMemberResult = await _chatMemeberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = userId, ChatId = chatId });
+                var addMemberResult = await _chatMemeberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = userId}, chatId);
 
                 if(!addMemberResult.Succeeded)
                     return Result.Failure($"{addMemberResult.ToString()}");

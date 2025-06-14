@@ -2,7 +2,9 @@
 
 public enum enChatRole
 {
-    ChatMember = 1,
+    Participant = 0, // For direct chats 
+    ChatMember,
     ChatAdmin,
+    Owner
 }
 

@@ -16,8 +16,9 @@ namespace MessengerClone.Service.Features.ChatMembers.Profiles
                  .ForMember(dest => dest.PhoneNumber, opt => opt.MapFrom(src => src.User.PhoneNumber))
                  .ForMember(dest => dest.ProfileFileUrl, opt => opt.MapFrom(src => src.User.ProfileImageUrl))
                  .ForMember(dest => dest.JoinedAt, opt => opt.MapFrom(src => src.CreatedAt));
-            
-            CreateMap<AddChatMemberDto, ChatMember>();
+
+            CreateMap<AddChatMemberDto, ChatMember>()
+                 .ForMember(dest => dest.ChatId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["ChatId"]));
 
         }
     }

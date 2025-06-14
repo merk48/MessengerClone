@@ -239,12 +239,12 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 List<AddChatMemberDto> members = new() 
                 {
-                    new AddChatMemberDto { ChatId = directEntity.Id, UserId = currentUserId},
-                    new AddChatMemberDto { ChatId = directEntity.Id, UserId = dto.OtherMemberId } 
+                    new AddChatMemberDto { UserId = currentUserId,ChatRole = enChatRole.Participant},
+                    new AddChatMemberDto { UserId = dto.OtherMemberId,ChatRole = enChatRole.Participant } 
                 };
 
 
-                var addDirectChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members);
+                var addDirectChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members, directEntity.Id);
                 if (!addDirectChatMembersResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
@@ -324,14 +324,14 @@ namespace MessengerClone.Service.Features.Chats.Services
                 List<AddChatMemberDto> members = new();
 
                 if (!dto.MemberIds.Contains(currentUserId))
-                    members.Add(new AddChatMemberDto { ChatId = groupEntity.Id, UserId = currentUserId });
+                    members.Add(new AddChatMemberDto { UserId = currentUserId ,ChatRole = enChatRole.Owner });
 
                 foreach (int memberId in dto.MemberIds)
                 {
-                    members.Add(new AddChatMemberDto { ChatId = groupEntity.Id, UserId = memberId });
+                    members.Add(new AddChatMemberDto { UserId = memberId, ChatRole = enChatRole.ChatMember });
                 }
 
-                var addGroupChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members);
+                var addGroupChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members, groupEntity.Id);
                 if (!addGroupChatMembersResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();

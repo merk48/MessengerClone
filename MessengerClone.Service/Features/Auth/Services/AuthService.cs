@@ -235,7 +235,7 @@ namespace MessengerClone.Service.Features.Auth.Services
 
                 foreach (var role in dto.Roles)
                 {
-                    var addRolesResult = await _userManager.AddToRoleAsync(user, role);
+                    var addRolesResult = await _userManager.AddToRoleAsync(user, role.ToString());
 
                     if (!addRolesResult.Succeeded)
                     {
