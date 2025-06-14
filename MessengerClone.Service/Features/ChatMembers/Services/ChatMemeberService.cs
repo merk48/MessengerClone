@@ -171,6 +171,8 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
 
                 entity.ChatRole = dto.ChatRole;
 
+                await _unitOfWork.Repository<ChatMember>().UpdateAsync(entity);
+
                 var memberDto = _mapper.Map<ChatMemberDto>(entity);
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();

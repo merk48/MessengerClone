@@ -1,4 +1,6 @@
-﻿namespace MessengerClone.Service.Features.ChatMembers.DTOs
+﻿using MessengerClone.Domain.Utils.Enums;
+
+namespace MessengerClone.Service.Features.ChatMembers.DTOs
 {
     public class ChatMemberDto
     {
@@ -8,5 +10,6 @@
         public string Email { get; set; } = null!;
         public string Username { get; set; } = null!;
         public string? ProfileFileUrl { get; set; }
+        public enChatRole ChatRole { get; set; }
     }
 }

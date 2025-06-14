@@ -179,15 +179,15 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpPatch(Name = "ChangeMemberChatRoleAsync")]
-        public async Task<IActionResult> ChangeMemberChatRoleAsync([FromRoute] int chatId, AddMemberChatRoleDto dto)
+        [HttpPatch("{id:int}/role-change",Name = "ChangeMemberChatRoleAsync")]
+        public async Task<IActionResult> ChangeMemberChatRoleAsync([FromRoute] int chatId,[FromRoute] int Id, AddMemberChatRoleDto dto)
         {
             try
             {
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
                 
-                var result = await _chatMemberService.ChangeMemberChatRoleAsync(chatId, _userContext.UserId, dto);
+                var result = await _chatMemberService.ChangeMemberChatRoleAsync(Id,chatId, dto);
 
                 return result.Succeeded
                     ? SuccessResponse(result.Data, "Chat member role updated successfully.")
