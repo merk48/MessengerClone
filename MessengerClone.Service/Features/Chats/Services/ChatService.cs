@@ -6,6 +6,7 @@ using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.ChatMembers.DTOs;
 using MessengerClone.Service.Features.Chats.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
+using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.Files.Helpers;
 using MessengerClone.Service.Features.Files.Interfaces;
 using MessengerClone.Service.Features.General.DTOs;
@@ -68,7 +69,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 foreach (var chatDto in chatDtos)
                 {
-                    var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesForUserCountAsync(chatDto.Id, userId);
+                    var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chatDto.Id, userId);
 
                     if (UnreadCountResult.Succeeded)
                         chatDto.UnreadCount = UnreadCountResult.Data;
@@ -144,13 +145,23 @@ namespace MessengerClone.Service.Features.Chats.Services
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
-                var chat = await _unitOfWork.Repository<Chat>()
-                    .Table
-                    .Include(c => c.ChatMembers)
-                        .ThenInclude(cm => cm.User)
-                    .FirstOrDefaultAsync(c => c.Id == chatId);
 
+                //var chat =  _unitOfWork.Repository<Chat>()
+                //   .Table
+                //   //.Include(c => c.LastMessage)
+                //   .Include(c => c.ChatMembers)
+                //       .ThenInclude(cm => cm.User)
+                //   .FirstOrDefaultAsync(c => c.Id == chatId);
+
+                var chat = await _unitOfWork.Repository<GroupChat>().GetAsync(x => x.Id == chatId, include: x => x.Include(x => x.ChatMembers).ThenInclude(cm => cm.User));
+                //.Table
+                ////.Include(c => c.LastMessage)
+                //.Include(c => c.ChatMembers)
+                //    .ThenInclude(cm => cm.User)
+                //.FirstOrDefaultAsync(c => c.Id == chatId);
+
+
+                //Console.WriteLine(chat.LastMessage?.Content); // Check if it's populated
                 if (chat == null)
                 {
                     _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(GetChatMetadataById));
@@ -667,6 +678,48 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
 }
 
+        public async Task<Result> UpdateGroupLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
+        {
+             try 
+             {
+                var entity = await _unitOfWork.Repository<GroupChat>().GetAsync(x => x.Id == chatId,
+                include: x => x.Include(x => x.ChatMembers)
+                                .Include(x => x.LastMessage!));
+
+                if (entity == null)
+                {
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateGroupLastMessageAsync));
+                    return Result.Failure("Group Chat not found");
+                }
+
+                entity.LastMessage = _mapper.Map<LastMessageSnapshot>(msgDto);
+
+                await _unitOfWork.Repository<GroupChat>().UpdateAsync(entity);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if (!saveReult.Succeeded)
+                    return Result.Failure("Failed to update chat last message");
+
+
+                _logger.LogInformation("Chat {Id} last message updated successfully", entity.Id);
+
+                return Result.Success();
+
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateGroupLastMessageAsync));
+                return Result.Failure("Request was canceled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateGroupLastMessageAsync));
+                return Result.Failure("Failed update chat description"); ;
+            }
+           
+        }
+
         public async Task<Result<GroupChatMetadataDto>> UpdateGroupChatDescriptionAsync(int chatId, int currentUserId, UpdateGroupChatDescriptionDto dto, CancellationToken cancellationToken)
         {
             try
@@ -703,7 +756,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
 
                 var chatDto = (await MapperHelper.BuildChatMetadataDto(entity, currentUserId, _messageStatusService, _mapper)) as GroupChatMetadataDto;
-               
+
                 _logger.LogInformation("Chat {Id} description updated successfully", entity.Id);
 
                 return Result<GroupChatMetadataDto>.Success(chatDto);
@@ -720,6 +773,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                 return Result<GroupChatMetadataDto>.Failure("Failed update chat description"); ;
             }
         }
+
 
         public async Task<Result> DeleteAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
         {

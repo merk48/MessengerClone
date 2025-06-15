@@ -86,12 +86,12 @@ namespace MessengerClone
             builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
             {
                 var auditByInterceptor = serviceProvider.GetRequiredService<AuditByInterceptor>();
-                var latestChatsUpdateInterceptor = serviceProvider.GetRequiredService<LatestChatsUpdateInterceptor>();
+                //var latestChatsUpdateInterceptor = serviceProvider.GetRequiredService<LatestChatsUpdateInterceptor>();
                 var softDeleteInterceptor = serviceProvider.GetRequiredService<SoftDeleteInterceptor>();
 
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
                 .AddInterceptors(softDeleteInterceptor,
-                                 latestChatsUpdateInterceptor,
+                                 //latestChatsUpdateInterceptor,
                                  new AuditAtInterceptor(),
                                  auditByInterceptor);
 

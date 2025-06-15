@@ -55,14 +55,6 @@ namespace MessengerClone.Service.Features.ChatMembers.Services
         {
             try
             {
-                //var exsistingEntity = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == userId && x.ChatId == chatId, include: x => x.Include(x => x.User));
-
-                //if (exsistingEntity is not null)
-                //{
-                //    var exsistingChatMemberDtoResult = _mapper.Map<ChatMemberDto>(exsistingEntity);
-                //    return Result<ChatMemberDto>.Success(exsistingChatMemberDtoResult.Data);
-                //}
-
                 var entity = await _unitOfWork.Repository<ChatMember>().GetAsync(x => x.UserId == dto.UserId && x.ChatId == chatId);
 
                 if (entity is not null)

@@ -26,27 +26,25 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
                .IsRequired();
 
             // Configure LastMessage as an owned type
-            builder.OwnsOne(c => c.LastMessage, lm =>
-            {
-                // Map each property of LastMessageSnapshot to its own column in Chats:
-                lm.Property(x => x.Id)
-                    .HasColumnName("LastMessageId");
+             builder.OwnsOne(c => c.LastMessage, lm =>
+             {
+                 lm.Property(x => x.Id)
+                   .HasColumnName("LastMessageId");
 
-                lm.Property(x => x.Content)
-                    .HasColumnName("LastMessageContent")
-                    .HasMaxLength(1000);
+                 lm.Property(x => x.Content)
+                   .HasColumnName("LastMessageContent");
 
-                lm.Property(x => x.SentAt)
-                    .HasColumnName("LastMessageSentAt");
+                 lm.Property(x => x.SentAt)
+                   .HasColumnName("LastMessageSentAt");
 
-                lm.Property(x => x.SenderUserame)
-                    .HasColumnName("LastMessageSenderUsername")
-                    .HasMaxLength(100);
+                 lm.Property(x => x.SenderUsername)   // EXACT match to CLR
+                   .HasColumnName("LastMessageSenderUsername");
 
-                lm.Property(x => x.Type)
-                    .HasColumnName("LastMessageType")
-                    .HasConversion<string>();
-            });
+                 lm.Property(x => x.Type)
+                   .HasColumnName("LastMessageType")
+                   .HasConversion<string>();
+             });
+
 
             builder.Property(c => c.DateDeleted)
                 .IsRequired(false);

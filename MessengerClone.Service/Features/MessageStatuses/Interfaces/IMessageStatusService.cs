@@ -11,7 +11,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Interfaces
         Task<Result> MarkAsDeliveredAsync(int messageId, int userId);
         Task<Result> MarkAsReadAsync(int messageId, int userId);
         Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int messageId);
-        Task<Result<int>> GetChatUnreadMessagesForUserCountAsync(int chatId, int currentUserId);
+        Task<Result<int>> GetChatUnreadMessagesCountForUserAsync(int chatId, int currentUserId);
         Task<Result<DataResult<MessageDto>>> GetChatUnreadMessagesForUserAsync(int chatId, int currentUserId, int? page = null, int? size = null);
     }
 }

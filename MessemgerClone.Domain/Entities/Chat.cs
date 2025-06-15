@@ -10,7 +10,7 @@ namespace MessengerClone.Domain.Entities
         public enChatType Type { get; set; }
         public DateTime CreatedAt { get; set; }
         public enChatTheme ChatTheme { get; set; }
-        public LastMessageSnapshot? LastMessage { get; set; } = new();
+        public LastMessageSnapshot? LastMessage { get; set; } 
         public string? Title { get; set; }
 
         public bool IsDeleted { get; set; }

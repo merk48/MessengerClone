@@ -19,7 +19,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 {
           
     public class MessageService(IUnitOfWork _unitOfWork, IMapper _mapper, IChatMemeberService _memeberService,IMediaAttachmentService _attachmentService,
-        IMessageStatusService _messageStatusService, IUserService _userService) 
+        IMessageStatusService _messageStatusService, IUserService _userService , IChatService _chatService) 
         : IMessageService     
     {
         public async Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int currentUserId,CancellationToken cancellationToken, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Message, bool>>? filter = null)
@@ -41,7 +41,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (page == null) size = 1;
                 if(size == null) size = 50;
 
-                var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesForUserCountAsync(chatId, currentUserId);
+                var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chatId, currentUserId);
 
                 int UnreadCount = 0;
 
@@ -230,6 +230,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
 
+                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data, cancellationToken);
+                if (!updateChatLastMessageResult.Succeeded)
+                    return Result<MessageDto>.Failure("Failed to add the message.");
+
                 if (!hasOwnTr)
                     return Result<MessageDto>.Success(messageDtoResult.Data);
 
@@ -241,7 +245,6 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 }
 
                 return Result<MessageDto>.Success(messageDtoResult.Data);
-
             }
             catch (Exception)
             {

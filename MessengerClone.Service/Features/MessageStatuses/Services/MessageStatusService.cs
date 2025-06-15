@@ -29,6 +29,8 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
 
                 status.DeliveredAt = DateTime.UtcNow;
 
+                await _unitOfWork.Repository<MessageStatus>().UpdateAsync(status);
+
                 var saveReult =  await _unitOfWork.SaveChangesAsync();
 
                 return saveReult.Succeeded 
@@ -90,7 +92,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<int>> GetChatUnreadMessagesForUserCountAsync(int chatId, int currentUserId)
+        public async Task<Result<int>> GetChatUnreadMessagesCountForUserAsync(int chatId, int currentUserId)
         {
             try
             {

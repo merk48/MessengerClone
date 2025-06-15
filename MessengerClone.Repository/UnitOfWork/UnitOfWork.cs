@@ -1,8 +1,11 @@
-﻿using MessengerClone.Domain.IRepository;
+﻿using MessengerClone.Domain.Entities;
+using MessengerClone.Domain.IRepository;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Repository.EntityFrameworkCore.Context;
 using MessengerClone.Repository.Repository;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace MessengerClone.Repository.UnitOfWork
@@ -21,6 +24,12 @@ namespace MessengerClone.Repository.UnitOfWork
 
         public IRepository<TEntity> Repository<TEntity>() where TEntity : class
         {
+            var chatModel = _context.Model.FindEntityType(typeof(Chat));
+            foreach (var property in chatModel.GetProperties())
+            {
+                Console.WriteLine($"{property.Name} -> {property.GetColumnName()}");
+            }
+
             if (!_repositories.TryGetValue(typeof(TEntity), out var repository))
             {
                 repository = new Repository<TEntity>(_context);

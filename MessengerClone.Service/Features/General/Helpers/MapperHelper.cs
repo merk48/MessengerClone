@@ -41,7 +41,7 @@ namespace MessengerClone.Service.Features.General.Helpers
 
         public static async Task<ChatMetadataDto> BuildChatMetadataDto(Chat chat, int currentUserId, IMessageStatusService _messageStatusService, IMapper _mapper)
         {
-            var unreadCountResult = await _messageStatusService.GetChatUnreadMessagesForUserCountAsync(chat.Id, currentUserId);
+            var unreadCountResult = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chat.Id, currentUserId);
             if (!unreadCountResult.Succeeded)
                 throw new InvalidOperationException("Unread message count fetch failed.");
 

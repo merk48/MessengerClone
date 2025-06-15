@@ -4,6 +4,7 @@ using MessengerClone.Repository.EntityFrameworkCore.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MessengerClone.Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250614200930_fix-owned2")]
+    partial class fixowned2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -552,26 +555,21 @@ namespace MessengerClone.Repository.Migrations
 
                             b1.Property<string>("Content")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("LastMessageContent");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<int>("Id")
-                                .HasColumnType("int")
-                                .HasColumnName("LastMessageId");
+                                .HasColumnType("int");
 
                             b1.Property<string>("SenderUsername")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("LastMessageSenderUsername");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.Property<DateTime>("SentAt")
-                                .HasColumnType("datetime2")
-                                .HasColumnName("LastMessageSentAt");
+                                .HasColumnType("datetime2");
 
                             b1.Property<string>("Type")
                                 .IsRequired()
-                                .HasColumnType("nvarchar(max)")
-                                .HasColumnName("LastMessageType");
+                                .HasColumnType("nvarchar(max)");
 
                             b1.HasKey("ChatId");
 
