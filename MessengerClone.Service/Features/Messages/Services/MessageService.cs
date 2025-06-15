@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.Execution;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Enums;
@@ -10,6 +11,7 @@ using MessengerClone.Service.Features.General.Extentions;
 using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.Messages.DTOs;
+using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -151,10 +153,11 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                                      .Include(x => x.Attachment)
                                      .Include(x => x.MessageInfo)
                                      .Include(x => x.MessageReactions));
-
+               
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
+                entity.MessageInfo = entity.MessageInfo.Where(x => x.UserId != currentUserId).ToList();
                 MessageDto messageDto = await MapperHelper.BuildMessageDto(entity,_userService ,_mapper, cancellationToken) ;
 
                 return Result<MessageDto>.Success(messageDto);
@@ -223,14 +226,47 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 
                 #endregion
 
+                // add Message Status
+                // as number of msg'chat members should add status to this msg wil all default values
+                var getChatResult = await _chatService.GetChatMetadataById(chatId, senderId, cancellationToken);
+                if (!getChatResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<MessageDto>.Failure(getChatResult.ToString());
+                }
 
+                List<AddMessageStatusDto> info = new();
+
+                foreach (var member in getChatResult.Data!.Members)
+                {
+                    enMessageStatus status = enMessageStatus.Sent;
+                    if (member.UserId == senderId)
+                        status = enMessageStatus.Read;
+
+                    info.Add(new AddMessageStatusDto()
+                    {
+                        MessageId = entity.Id,
+                        UserId = member.UserId,
+                        CreatedAt = entity.CreatedAt,
+                        Status = status
+                    });
+                }
+
+                var addMessageInfoResult = await _messageStatusService.AddMessageInfoAsync(info);
+
+                if (!addMessageInfoResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<MessageDto>.Failure(addMessageInfoResult.ToString());
+                }
+                
                 var messageDtoResult = await GetMessageByIdForUserAsync(entity.Id, senderId,cancellationToken);
 
                 if (!messageDtoResult.Succeeded )
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
 
-                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data, cancellationToken);
+                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
                 if (!updateChatLastMessageResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to add the message.");
 

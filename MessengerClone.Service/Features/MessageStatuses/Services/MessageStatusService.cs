@@ -10,13 +10,65 @@ using MessengerClone.Service.Features.General.Extentions;
 using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
-using System.Linq;
 
 namespace MessengerClone.Service.Features.MessageStatuses.Services
 {
     public class MessageStatusService(IUnitOfWork _unitOfWork, IMapper _mapper) : IMessageStatusService
     {
+
+        public async Task<Result<MessageStatusDto>> AddMessageStatusAsync(AddMessageStatusDto dto)
+        {
+            try
+            {
+                var entity = _mapper.Map<MessageStatus>(dto);
+
+                await _unitOfWork.Repository<MessageStatus>().AddAsync(entity);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if(!saveReult.Succeeded)
+                    return Result<MessageStatusDto>.Failure("Failed to add message status to database");
+
+                var messageStatuesDto = _mapper.Map<MessageStatusDto>(entity);
+
+                return Result<MessageStatusDto>.Success(messageStatuesDto);
+
+            }
+            catch (Exception)
+            {
+                // Log.
+                return Result<MessageStatusDto>.Failure("Failed to add message status to database");
+            }
+        }
+
+        public async Task<Result<DataResult<MessageStatusDto>>> AddMessageInfoAsync(IEnumerable<AddMessageStatusDto> dto)
+        {
+            try
+            {
+                var entities = _mapper.Map<List<MessageStatus>>(dto);
+
+                await _unitOfWork.Repository<MessageStatus>().AddRangeAsync(entities);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if (!saveReult.Succeeded)
+                    return Result<DataResult<MessageStatusDto>>.Failure("Failed to add message info of statuses to database");
+
+                var messageStatuesDtos = _mapper.Map<List<MessageStatusDto>>(entities);
+
+                return Result<DataResult<MessageStatusDto>>.Success(new DataResult<MessageStatusDto>
+                {
+                    Data = messageStatuesDtos ?? Enumerable.Empty<MessageStatusDto>(),
+                    TotalRecordsCount = messageStatuesDtos!.Count
+                });
+
+            }
+            catch (Exception)
+            {
+                // Log.
+                return Result<DataResult<MessageStatusDto>>.Failure("Failed to add message info of statuses to database");
+            }
+        }
 
         public async Task<Result> MarkAsDeliveredAsync(int messageId, int userId)
         {
