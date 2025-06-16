@@ -148,17 +148,25 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 cancellationToken.ThrowIfCancellationRequested();
                
                 Message? entity = await _unitOfWork.Repository<Message>()
-                    .GetAsync(x => x.Id == id && x.SenderId ==currentUserId 
+                    .GetAsync(x => x.Id == id && x.SenderId == currentUserId 
                     ,include : x=> x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
                                      .Include(x => x.MessageInfo)
+                                        .ThenInclude(x => x.Member)
                                      .Include(x => x.MessageReactions));
                
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
-                entity.MessageInfo = entity.MessageInfo.Where(x => x.UserId != currentUserId).ToList();
+                entity.MessageInfo = entity.MessageInfo.Where(x => x.MemberId != currentUserId).ToList();
                 MessageDto messageDto = await MapperHelper.BuildMessageDto(entity,_userService ,_mapper, cancellationToken) ;
+
+                //messageDto.MessageInfo.ForEach(x =>
+                //{
+                //    x.User.JoinedAt = from member in _unitOfWork.Repository<ChatMember>()
+                //                      select member.User.JoinedAt
+                //            where member.Id == x.UserId
+                //});
 
                 return Result<MessageDto>.Success(messageDto);
 

@@ -7,13 +7,16 @@ using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.General.Extentions;
+using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
+using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Threading;
 
 namespace MessengerClone.Service.Features.MessageStatuses.Services
 {
-    public class MessageStatusService(IUnitOfWork _unitOfWork, IMapper _mapper) : IMessageStatusService
+    public class MessageStatusService(IUnitOfWork _unitOfWork, IMapper _mapper, IUserService _userService) : IMessageStatusService
     {
 
         public async Task<Result<MessageStatusDto>> AddMessageStatusAsync(AddMessageStatusDto dto)
@@ -70,15 +73,16 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result> MarkAsDeliveredAsync(int messageId, int userId)
+        public async Task<Result> MarkAsDeliveredAsync(int chatId, int messageId, int userId)
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.MessageId == messageId && x.UserId == userId);
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.MemberId == userId);
 
                 if (status == null)
                     return Result.Failure("Status not found!");
 
+                status.Status = enMessageStatus.Delivered;
                 status.DeliveredAt = DateTime.UtcNow;
 
                 await _unitOfWork.Repository<MessageStatus>().UpdateAsync(status);
@@ -96,15 +100,16 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result> MarkAsReadAsync(int messageId, int userId)
+        public async Task<Result> MarkAsReadAsync(int chatId, int messageId, int userId)
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.MessageId == messageId && x.UserId == userId);
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.MemberId == userId);
 
                 if (status == null) 
                     return Result.Failure("Status not found!");
 
+                status.Status = enMessageStatus.Read;
                 status.ReadAt = DateTime.UtcNow;
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
@@ -121,7 +126,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int messageId)
+        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int chatId, int messageId)
         {
             try
             {
@@ -149,7 +154,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             try
             {
                 var unReadMessagesCount = await _unitOfWork.Repository<MessageStatus>().Table
-                    .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
+                    .Where(x => x.Message.ChatId == chatId && x.MemberId == currentUserId && x.Status != enMessageStatus.Read)
                     .CountAsync();
 
                 return Result<int>.Success(unReadMessagesCount);
@@ -161,12 +166,12 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<DataResult<MessageDto>>> GetChatUnreadMessagesForUserAsync(int chatId, int currentUserId, int? page = null, int? size = null)
+        public async Task<Result<DataResult<MessageDto>>> GetChatUnreadMessagesForUserAsync(int chatId, int currentUserId, CancellationToken cancellationToken, int? page = null, int? size = null)
         {
             try
             {
                 var query = _unitOfWork.Repository<MessageStatus>().Table
-                     .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
+                     .Where(x => x.Message.ChatId == chatId && x.MemberId == currentUserId && x.Status != enMessageStatus.Read)
                      .Include(x => x.Message)
                      .Select(x => x.Message)
                      .Distinct()
@@ -189,9 +194,8 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
 
                 foreach (var msg in messages)
                 {
-                    var dto = _mapper.Map<MessageDto>(msg, opts => {
-                        opts.Items["JoinedAt"] = msg.CreatedAt;
-                    });
+                    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
+
                     messageDtos.Add(dto);
                 }
 

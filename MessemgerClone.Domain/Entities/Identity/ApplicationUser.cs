@@ -13,9 +13,8 @@ namespace MessengerClone.Domain.Entities.Identity
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
-        public List<ChatMember>? ConversationParticipants { get; set; } = new();
+        public List<ChatMember>? ChatMembers { get; set; } = new();
         public List<Message>? Messages { get; set; } = new();
-        public List<MessageReaction>? MessageReactions { get; set; } = new();
         public List<GroupChat>? CreatedGroupConversations { get; set; } = new();
         public List<GroupChat>? UpdatedGroupConversations { get; set; } = new();
 

@@ -1,5 +1,6 @@
 ﻿using MessengerClone.Service.Features.Users.DTOs;
 using MessengerClone.Domain.Utils.Enums;
+using MessengerClone.Service.Features.ChatMembers.DTOs;
 
 namespace MessengerClone.Service.Features.MessageStatuses.DTOs
 {
@@ -11,6 +12,6 @@ namespace MessengerClone.Service.Features.MessageStatuses.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? ReadAt { get; set; } 
-        public UserDto User { get; set; } = null!;
+        public ChatMemberDto User { get; set; } = null!;
     }
 }

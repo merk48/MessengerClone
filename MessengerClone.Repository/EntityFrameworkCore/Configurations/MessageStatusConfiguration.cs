@@ -9,7 +9,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<MessageStatus> builder)
         {
-            builder.HasKey(mrr => new { mrr.UserId, mrr.MessageId });
+            builder.HasKey(mrr => new { mrr.MemberId, mrr.MessageId });
 
             builder.Property(mrr => mrr.Status)
                    .HasConversion<string>()
@@ -25,9 +25,9 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
              .IsRequired(false);
 
             builder
-                .HasOne(mrr => mrr.User)
-                .WithMany()
-                .HasForeignKey(mrr => mrr.UserId)
+                .HasOne(mrr => mrr.Member)
+                .WithMany(m => m.MessageInfo)
+                .HasForeignKey(mrr => mrr.MemberId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder

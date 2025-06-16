@@ -24,12 +24,6 @@ namespace MessengerClone.Repository.UnitOfWork
 
         public IRepository<TEntity> Repository<TEntity>() where TEntity : class
         {
-            var chatModel = _context.Model.FindEntityType(typeof(Chat));
-            foreach (var property in chatModel.GetProperties())
-            {
-                Console.WriteLine($"{property.Name} -> {property.GetColumnName()}");
-            }
-
             if (!_repositories.TryGetValue(typeof(TEntity), out var repository))
             {
                 repository = new Repository<TEntity>(_context);

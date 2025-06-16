@@ -8,7 +8,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<ChatMember> builder)
         {
-            builder.HasKey(cp => new { cp.ChatId, cp.UserId });
+            builder.HasKey(cp => new { cp.Id});
 
             builder.Property(x => x.ChatRole)
                    .HasConversion<string>();
@@ -17,7 +17,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
              .IsRequired();
 
             builder.HasOne(cp => cp.User)
-                .WithMany(u => u.ConversationParticipants)
+                .WithMany(u => u.ChatMembers)
                 .HasForeignKey(cp => cp.UserId);
 
             builder.HasOne(cp => cp.Chat)

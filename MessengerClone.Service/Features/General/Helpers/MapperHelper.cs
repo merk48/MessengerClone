@@ -26,6 +26,7 @@ namespace MessengerClone.Service.Features.General.Helpers
             return _mapper.Map<MessageDto>(message, opt => {
                 opt.Items["IsLocked"] = isLockedResult.Data;
                 opt.Items["Roles"] = rolesResult.Data;
+                //opt.Items["JoinedAt"] = DateTime.UtcNow;
             });
         }
 

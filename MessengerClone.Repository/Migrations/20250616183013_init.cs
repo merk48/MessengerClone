@@ -176,9 +176,9 @@ namespace MessengerClone.Repository.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ChatTheme = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastMessageId = table.Column<int>(type: "int", nullable: true),
-                    LastMessageContent = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    LastMessageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastMessageSentAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastMessageSenderUsername = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    LastMessageSenderUsername = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     LastMessageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Title = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
@@ -217,7 +217,7 @@ namespace MessengerClone.Repository.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<int>(type: "int", maxLength: 100, nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
                     Event = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IpAddress = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     UserAgent = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
@@ -238,14 +238,16 @@ namespace MessengerClone.Repository.Migrations
                 name: "ChatMembers",
                 columns: table => new
                 {
-                    ChatId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ChatRole = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    ChatRole = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ChatId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ChatMembers", x => new { x.ChatId, x.UserId });
+                    table.PrimaryKey("PK_ChatMembers", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ChatMembers_AspNetUsers_UserId",
                         column: x => x.UserId,
@@ -267,7 +269,7 @@ namespace MessengerClone.Repository.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ChatId = table.Column<int>(type: "int", nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsPinned = table.Column<bool>(type: "bit", nullable: false),
                     PinnedById = table.Column<int>(type: "int", nullable: true),
@@ -336,18 +338,18 @@ namespace MessengerClone.Repository.Migrations
                 name: "MessageReactions",
                 columns: table => new
                 {
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    MemberId = table.Column<int>(type: "int", nullable: false),
                     MessageId = table.Column<int>(type: "int", nullable: false),
                     ReactionType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MessageReactions", x => new { x.UserId, x.MessageId });
+                    table.PrimaryKey("PK_MessageReactions", x => new { x.MemberId, x.MessageId });
                     table.ForeignKey(
-                        name: "FK_MessageReactions_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
+                        name: "FK_MessageReactions_ChatMembers_MemberId",
+                        column: x => x.MemberId,
+                        principalTable: "ChatMembers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -362,7 +364,7 @@ namespace MessengerClone.Repository.Migrations
                 columns: table => new
                 {
                     MessageId = table.Column<int>(type: "int", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false),
+                    MemberId = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: false, defaultValue: "Sent"),
                     DeliveredAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -370,11 +372,11 @@ namespace MessengerClone.Repository.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_MessageStatuses", x => new { x.UserId, x.MessageId });
+                    table.PrimaryKey("PK_MessageStatuses", x => new { x.MemberId, x.MessageId });
                     table.ForeignKey(
-                        name: "FK_MessageStatuses_AspNetUsers_UserId",
-                        column: x => x.UserId,
-                        principalTable: "AspNetUsers",
+                        name: "FK_MessageStatuses_ChatMembers_MemberId",
+                        column: x => x.MemberId,
+                        principalTable: "ChatMembers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
@@ -422,6 +424,11 @@ namespace MessengerClone.Repository.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatMembers_ChatId",
+                table: "ChatMembers",
+                column: "ChatId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ChatMembers_UserId",
@@ -508,9 +515,6 @@ namespace MessengerClone.Repository.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "ChatMembers");
-
-            migrationBuilder.DropTable(
                 name: "MediaAttachments");
 
             migrationBuilder.DropTable(
@@ -524,6 +528,9 @@ namespace MessengerClone.Repository.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "ChatMembers");
 
             migrationBuilder.DropTable(
                 name: "Messages");

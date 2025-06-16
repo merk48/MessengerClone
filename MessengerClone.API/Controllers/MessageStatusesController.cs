@@ -8,12 +8,12 @@ using static MessengerClone.API.Response.ApiResponseHelper;
 
 namespace MessengerClone.API.Controllers
 {
-    [Route("api/messages/{messageId:int}/status")]
+    [Route("api/chats/{chatId}/messages/{messageId:int}/status")]
     [ApiController]
     public class MessageStatusesController(IMessageStatusService _messageStatusService, IUserContext _userContext) : ControllerBase
     {
         [HttpPost("acknowledge",Name = "UpdateMessageStatus")]
-        public async Task<IActionResult> Acknowledge([FromRoute] int messageId, [FromBody] MessageAcknowledgeDto dto)
+        public async Task<IActionResult> Acknowledge([FromRoute] int chatId, [FromRoute] int messageId, [FromBody] MessageAcknowledgeDto dto)
         {
             try
             {
@@ -23,10 +23,10 @@ namespace MessengerClone.API.Controllers
                 Result result = new();
 
                 if (dto.Status == enMessageStatus.Delivered)
-                    result = await _messageStatusService.MarkAsDeliveredAsync(messageId, _userContext.UserId);
+                    result = await _messageStatusService.MarkAsDeliveredAsync(chatId,messageId, _userContext.UserId);
 
                 else if (dto.Status == enMessageStatus.Read)
-                    result = await _messageStatusService.MarkAsReadAsync(messageId, _userContext.UserId);
+                    result = await _messageStatusService.MarkAsReadAsync(chatId,messageId, _userContext.UserId);
 
                 return result.Succeeded
                    ? SuccessResponse("Message status updated successfully.")
@@ -46,14 +46,14 @@ namespace MessengerClone.API.Controllers
 
 
         [HttpGet("unread", Name = "GetChatUnreadMessagesForUser")]
-        public async Task<IActionResult> GetChatUnreadMessagesForUserAsync([FromRoute] int chatId, [FromQuery] int? page = null, [FromQuery] int? size = null)
+        public async Task<IActionResult> GetChatUnreadMessagesForUserAsync([FromRoute] int chatId, CancellationToken cancellationToken, [FromQuery] int? page = null, [FromQuery] int? size = null)
         {
             try
             {
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _messageStatusService.GetChatUnreadMessagesForUserAsync(chatId, _userContext.UserId, page, size);
+                var result = await _messageStatusService.GetChatUnreadMessagesForUserAsync(chatId, _userContext.UserId, cancellationToken, page, size);
 
                 return result.Succeeded
                     ? SuccessResponse(result.Data, $"Chat unread messages retrieved successfully.")

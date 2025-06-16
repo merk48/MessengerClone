@@ -102,10 +102,13 @@ namespace MessengerClone.Repository.Migrations
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.ChatMember", b =>
                 {
-                    b.Property<int>("ChatId")
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChatId")
                         .HasColumnType("int");
 
                     b.Property<string>("ChatRole")
@@ -115,7 +118,12 @@ namespace MessengerClone.Repository.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("ChatId", "UserId");
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
 
                     b.HasIndex("UserId");
 
@@ -313,7 +321,7 @@ namespace MessengerClone.Repository.Migrations
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.MessageReaction", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("MemberId")
                         .HasColumnType("int");
 
                     b.Property<int?>("MessageId")
@@ -326,7 +334,7 @@ namespace MessengerClone.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("UserId", "MessageId");
+                    b.HasKey("MemberId", "MessageId");
 
                     b.HasIndex("MessageId");
 
@@ -335,7 +343,7 @@ namespace MessengerClone.Repository.Migrations
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.MessageStatus", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<int>("MemberId")
                         .HasColumnType("int");
 
                     b.Property<int>("MessageId")
@@ -356,7 +364,7 @@ namespace MessengerClone.Repository.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasDefaultValue("Sent");
 
-                    b.HasKey("UserId", "MessageId");
+                    b.HasKey("MemberId", "MessageId");
 
                     b.HasIndex("MessageId");
 
@@ -595,7 +603,7 @@ namespace MessengerClone.Repository.Migrations
                         .IsRequired();
 
                     b.HasOne("MessengerClone.Domain.Entities.Identity.ApplicationUser", "User")
-                        .WithMany("ConversationParticipants")
+                        .WithMany("ChatMembers")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -656,40 +664,40 @@ namespace MessengerClone.Repository.Migrations
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.MessageReaction", b =>
                 {
+                    b.HasOne("MessengerClone.Domain.Entities.ChatMember", "Member")
+                        .WithMany("MessageReactions")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MessengerClone.Domain.Entities.Message", "Message")
                         .WithMany("MessageReactions")
                         .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("MessengerClone.Domain.Entities.Identity.ApplicationUser", "User")
-                        .WithMany("MessageReactions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Member");
 
                     b.Navigation("Message");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.MessageStatus", b =>
                 {
+                    b.HasOne("MessengerClone.Domain.Entities.ChatMember", "Member")
+                        .WithMany("MessageInfo")
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MessengerClone.Domain.Entities.Message", "Message")
                         .WithMany("MessageInfo")
                         .HasForeignKey("MessageId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("MessengerClone.Domain.Entities.Identity.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("Member");
 
                     b.Navigation("Message");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MessengerClone.Domain.Entities.UserLog", b =>
@@ -779,13 +787,18 @@ namespace MessengerClone.Repository.Migrations
                     b.Navigation("Messages");
                 });
 
-            modelBuilder.Entity("MessengerClone.Domain.Entities.Identity.ApplicationUser", b =>
+            modelBuilder.Entity("MessengerClone.Domain.Entities.ChatMember", b =>
                 {
-                    b.Navigation("ConversationParticipants");
-
-                    b.Navigation("CreatedGroupConversations");
+                    b.Navigation("MessageInfo");
 
                     b.Navigation("MessageReactions");
+                });
+
+            modelBuilder.Entity("MessengerClone.Domain.Entities.Identity.ApplicationUser", b =>
+                {
+                    b.Navigation("ChatMembers");
+
+                    b.Navigation("CreatedGroupConversations");
 
                     b.Navigation("Messages");
 

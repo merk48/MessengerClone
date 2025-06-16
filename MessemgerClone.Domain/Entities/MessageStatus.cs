@@ -1,5 +1,4 @@
 ﻿using MessengerClone.Domain.Common.Interfaces;
-using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Domain.Utils.Enums;
 
 namespace MessengerClone.Domain.Entities
@@ -10,8 +9,8 @@ namespace MessengerClone.Domain.Entities
         public int MessageId { get; set; }
         public Message Message { get; set; } = null!;
 
-        public int UserId { get; set; }
-        public ApplicationUser User { get; set; } = null!;
+        public int MemberId { get; set; }
+        public ChatMember Member { get; set; } = null!;
 
         public enMessageStatus Status { get; set; }
         //public enMessageStatus Status => ReadAt != null ? enMessageStatus.Read : DeliveredAt != null ? enMessageStatus.Delivered : enMessageStatus.Sent;
