@@ -188,7 +188,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value);
 
-                var messages = await query.ToListAsync();
+                //var messages = await query.ToListAsync();
 
                 //List<MessageDto> messageDtos = new();
 

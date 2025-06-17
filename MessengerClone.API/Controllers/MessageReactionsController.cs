@@ -17,6 +17,33 @@ namespace MessengerClone.API.Controllers
     public class MessageReactionsController(IMessageReactionService _messageReactionService, IUserContext _userContext) : ControllerBase
     {
 
+        [HttpGet(Name = "GetAllMessageReactions")]
+        public async Task<IActionResult> GetAllMessageReactionsAsync([FromRoute] int chatId, [FromRoute] int messageId)
+        {
+            try
+            {
+                if (_userContext.UserId <= 0)
+                    return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
+
+                var result = await _messageReactionService.GetAllMessageReactionsAsync(chatId, messageId, _userContext.UserId);
+
+                return result.Succeeded
+                    ? CreatedResponse(null!, result.Data!, "Message reaction added successfully.")
+                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "CREATION_ERROR", result.ToString());
+            }
+            catch (HttpRequestException ex)
+            {
+                //Log.Error(ex.Message);
+                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Service error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                //Log.Error(ex.Message);
+                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Unexpected error: {ex.Message}");
+            }
+        }
+
+
         [HttpPost(Name = "AddReactToMessageAsync")]
         public async Task<IActionResult> AddReactToMessageAsync([FromRoute] int chatId, [FromRoute] int messageId, [FromBody] AddMessageReactionDto dto)
         {
