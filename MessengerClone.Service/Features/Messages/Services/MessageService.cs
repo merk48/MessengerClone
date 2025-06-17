@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using AutoMapper.Execution;
+using AutoMapper.QueryableExtensions;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Enums;
@@ -8,7 +8,6 @@ using MessengerClone.Service.Features.Chats.Interfaces;
 using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.General.Extentions;
-using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.Messages.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.DTOs;
@@ -21,7 +20,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 {
           
     public class MessageService(IUnitOfWork _unitOfWork, IMapper _mapper, IChatMemeberService _memeberService,IMediaAttachmentService _attachmentService,
-        IMessageStatusService _messageStatusService, IUserService _userService , IChatService _chatService) 
+        IMessageStatusService _messageStatusService , IChatService _chatService) 
         : IMessageService     
     {
         public async Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int currentUserId,CancellationToken cancellationToken, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Message, bool>>? filter = null)
@@ -77,14 +76,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 
                 var messages = await query.ToListAsync();
 
-                List<MessageDto> messageDtos = new();
+               var messageDtos = await query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
 
-                foreach (var msg in messages)
-                {
-                    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
+                //foreach (var msg in messages)
+                //{
+                //    var dto = _mapper.Map<MessageDto>(message);
 
-                    messageDtos.Add(dto);
-                }
+                //    messageDtos.Add(dto);
+                //}
 
                 if (page.HasValue && size.HasValue)
                 {
@@ -159,17 +158,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity,_userService ,_mapper, cancellationToken) ;
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
 
-                //messageDto.MessageInfo.ForEach(x =>
-                //{
-                //    x.User.JoinedAt = from member in _unitOfWork.Repository<ChatMember>()
-                //                      select member.User.JoinedAt
-                //            where member.Id == x.UserId
-                //});
 
                 return Result<MessageDto>.Success(messageDto);
-
             }
             catch (Exception)
             {
@@ -315,7 +307,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = true;
-                entity.PinnedById = currentUserId;
+                entity.PinnedBy = currentUserId;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -324,7 +316,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to pin the message!");
 
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -353,7 +345,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = false;
-                entity.PinnedById = null;
+                entity.PinnedBy = null;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -362,7 +354,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to unpin the message!");
 
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -410,7 +402,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
                 }
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
 
                 return Result<MessageDto>.Success(messageDto);
             }
@@ -446,7 +438,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (!saveResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
 
                 return messageDto is not null
                     ? Result<MessageDto>.Success(messageDto)

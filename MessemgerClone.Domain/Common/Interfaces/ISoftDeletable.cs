@@ -1,4 +1,5 @@
-﻿using MessengerClone.Domain.Entities.Identity;
+﻿using MessengerClone.Domain.Entities;
+using MessengerClone.Domain.Entities.Identity;
 
 namespace MessengerClone.Domain.Common.Interfaces
 {
@@ -6,8 +7,8 @@ namespace MessengerClone.Domain.Common.Interfaces
     {
         bool IsDeleted { get; set; }
         DateTime? DateDeleted { get; set; }
-        int? DeletedById { get; set; }
-        ApplicationUser? DeletedBy { get; set; }
+        int? DeletedBy { get; set; }
+        ChatMember? Deleter { get; set; }
 
         void Delete()
         {
@@ -19,7 +20,7 @@ namespace MessengerClone.Domain.Common.Interfaces
         {
             IsDeleted = false;
             DateDeleted = null;
-            DeletedById = null;
+            DeletedBy = null;
         }
     }
     

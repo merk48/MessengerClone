@@ -14,9 +14,6 @@ namespace MessengerClone.Domain.Entities.Identity
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
         public List<ChatMember>? ChatMembers { get; set; } = new();
-        public List<Message>? Messages { get; set; } = new();
         public List<GroupChat>? CreatedGroupConversations { get; set; } = new();
-        public List<GroupChat>? UpdatedGroupConversations { get; set; } = new();
-
     }
 }

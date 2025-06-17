@@ -52,7 +52,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder
             .HasOne(x => x.DeletedBy)
             .WithMany()
-            .HasForeignKey(x => x.DeletedById)
+            .HasForeignKey(x => x.DeletedBy)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 

@@ -125,7 +125,7 @@ namespace MessengerClone.API.Controllers
 
 
         [HttpPatch("{id:int}/pin-toggle", Name = "PinOrUnpinMessageAsync")]
-        public async Task<IActionResult> PinUnpinMessageAsync([FromRoute] int Id, [FromRoute] int chatId, [FromBody]PinUnPinMessageDto dto, CancellationToken cancellationToken)
+        public async Task<IActionResult> PinUnpinMessageAsync([FromRoute] int chatId, [FromRoute] int Id, [FromBody]PinUnPinMessageDto dto, CancellationToken cancellationToken)
         {
             try
             {

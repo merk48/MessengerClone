@@ -34,7 +34,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
 
             // Updater: one-to-many (optional)
             builder.HasOne(gc => gc.Updater)
-                   .WithMany(u => u.UpdatedGroupConversations)
+                   .WithMany()
                    .HasForeignKey(gc => gc.UpdatedBy)
                    .OnDelete(DeleteBehavior.NoAction);
 

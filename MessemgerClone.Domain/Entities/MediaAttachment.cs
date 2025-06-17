@@ -11,9 +11,9 @@ namespace MessengerClone.Domain.Entities
         public enMediaType FileType { get; set; }
         public bool IsDeleted  {get; set; }
         public DateTime? DateDeleted  {get; set; }
-        public int? DeletedById  {get; set; }
+        public int? DeletedBy  {get; set; }
 
         public Message Message { get; set; } = null!;
-        public ApplicationUser? DeletedBy  {get; set; }
+        public ChatMember? Deleter  {get; set; }
     }
 }

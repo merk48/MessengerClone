@@ -19,11 +19,11 @@ namespace MessengerClone.Service.Features.Messages.Profiles
             CreateMap<LastMessageSnapshot, LastMessageDto>();
 
             CreateMap<Message, LastMessageDto>()
-                .ForMember(dest => dest.SenderUserame, opt => opt.MapFrom(src => src.Sender.UserName))
+                .ForMember(dest => dest.SenderUserame, opt => opt.MapFrom(src => src.Sender.User.UserName))
                 .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt));
 
             CreateMap<Message, LastMessageSnapshot>()
-                .ForMember(dest => dest.SenderUsername, opt => opt.MapFrom(src => src.Sender.UserName))
+                .ForMember(dest => dest.SenderUsername, opt => opt.MapFrom(src => src.Sender.User.UserName))
                 .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt));
 
             CreateMap<MessageDto, LastMessageSnapshot>()
