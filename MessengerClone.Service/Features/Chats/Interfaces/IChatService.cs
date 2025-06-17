@@ -10,8 +10,8 @@ namespace MessengerClone.Service.Features.Chats.Interfaces
     public interface IChatService
     {
         Task<Result<ChatMetadataDto>> GetChatMetadataById(int chatId, int currentUserId, CancellationToken cancellationToken);
-        Task<Result<DataResult<ChatSidebarDto>>> GetAllForSidebarByUserIdAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Chat, bool>>? filter = null);
-        Task<Result<DataResult<int>>> GetUserAllChatIdsAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null);
+        Task<Result<DataResult<ChatSidebarDto>>> GetAllForSidebarByUserIdAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null, string? strFilter = null, Expression<Func<Chat, bool>>? filter = null);
+        Task<Result<DataResult<int>>> GetAllChatIdsForUserAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null);
         Task<Result> IsChatExisits(int chatId, CancellationToken cancellationToken);
         Task<bool> IsGroupTitleTakenAsync(string title, CancellationToken cancellationToken);
         Task<bool> IsGroupTitleTakenAsync(string title, int chatId, CancellationToken cancellationToken);

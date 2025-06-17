@@ -56,7 +56,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                         .AsNoTracking()
                         .Include(x => x.Sender)
                         .Include(x => x.Attachment)
-                        .Include(x => x.MessageInfo)
+                        .Include(x => x.MessageStatuses)
                         .Include(x => x.MessageReactions)
                         .Where(x => x.ChatId == chatId)
                         .AsQueryable();
@@ -123,7 +123,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.ChatId == chatId && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -151,14 +151,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.Id == id && x.SenderId == currentUserId 
                     ,include : x=> x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                         .ThenInclude(x => x.Member)
                                      .Include(x => x.MessageReactions));
                
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
-                entity.MessageInfo = entity.MessageInfo.Where(x => x.MemberId != currentUserId).ToList();
+                entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
                 MessageDto messageDto = await MapperHelper.BuildMessageDto(entity,_userService ,_mapper, cancellationToken) ;
 
                 //messageDto.MessageInfo.ForEach(x =>
@@ -308,7 +308,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -346,7 +346,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -384,7 +384,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                    .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                    , include: x => x.Include(x => x.Sender)
                                     .Include(x => x.Attachment)
-                                    .Include(x => x.MessageInfo)
+                                    .Include(x => x.MessageStatuses)
                                     .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -431,7 +431,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                    .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                    , include: x => x.Include(x => x.Sender)
                                     .Include(x => x.Attachment)
-                                    .Include(x => x.MessageInfo)
+                                    .Include(x => x.MessageStatuses)
                                     .Include(x => x.MessageReactions));
 
                 if (entity == null)

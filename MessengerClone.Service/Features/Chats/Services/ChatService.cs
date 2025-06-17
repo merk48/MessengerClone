@@ -106,7 +106,7 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
         }
 
-        public async Task<Result<DataResult<int>>> GetUserAllChatIdsAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null)
+        public async Task<Result<DataResult<int>>> GetAllChatIdsForUserAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null)
         {
             try
             {
@@ -130,12 +130,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(GetUserAllChatIdsAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(GetAllChatIdsForUserAsync));
                 return Result<DataResult<int>>.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(GetUserAllChatIdsAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(GetAllChatIdsForUserAsync));
                 return Result<DataResult<int>>.Failure("Failed to retrieve chats ids from the database"); ;
             }
         }
@@ -154,11 +154,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                 //   .FirstOrDefaultAsync(c => c.Id == chatId);
 
                 var chat = await _unitOfWork.Repository<GroupChat>().GetAsync(x => x.Id == chatId, include: x => x.Include(x => x.ChatMembers).ThenInclude(cm => cm.User));
-                //.Table
-                ////.Include(c => c.LastMessage)
-                //.Include(c => c.ChatMembers)
-                //    .ThenInclude(cm => cm.User)
-                //.FirstOrDefaultAsync(c => c.Id == chatId);
+           
 
 
                 //Console.WriteLine(chat.LastMessage?.Content); // Check if it's populated

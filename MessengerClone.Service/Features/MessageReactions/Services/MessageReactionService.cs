@@ -45,7 +45,7 @@ namespace MessengerClone.Service.Features.MessageReactions.Services
         {
             try
             {
-                var entity = await _unitOfWork.Repository<MessageReaction>().GetAsync(x => x.MemberId == currentUserId && x.MessageId == messageId);
+                var entity = await _unitOfWork.Repository<MessageReaction>().GetAsync(x => x.UserId == currentUserId && x.MessageId == messageId);
 
                 if(entity == null)
                     return Result<MessageReactionDto>.Failure("There is no reaction found");

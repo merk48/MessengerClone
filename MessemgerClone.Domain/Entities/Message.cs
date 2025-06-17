@@ -29,7 +29,7 @@ namespace MessengerClone.Domain.Entities
 
         public MediaAttachment? Attachment { get; set; }
 
-        public List<MessageStatus> MessageInfo { get; set; } = new();
+        public List<MessageStatus> MessageStatuses { get; set; } = new();
         public List<MessageReaction> MessageReactions { get; set; } = new();
 
 

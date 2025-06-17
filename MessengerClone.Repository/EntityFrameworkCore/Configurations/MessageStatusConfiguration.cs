@@ -9,31 +9,31 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<MessageStatus> builder)
         {
-            builder.HasKey(mrr => new { mrr.MemberId, mrr.MessageId });
+            builder.HasKey(ms => new { ms.MessageId, ms.UserId, ms.ChatId });
 
-            builder.Property(mrr => mrr.Status)
+            builder.Property(ms => ms.Status)
                    .HasConversion<string>()
                    .HasDefaultValue(enMessageStatus.Sent);
 
-            builder.Property(mrr => mrr.CreatedAt)
+            builder.Property(ms => ms.CreatedAt)
              .IsRequired();
 
-            builder.Property(mrr => mrr.DeliveredAt)
+            builder.Property(ms => ms.DeliveredAt)
             .IsRequired(false); 
 
-            builder.Property(mrr => mrr.ReadAt)
+            builder.Property(ms => ms.ReadAt)
              .IsRequired(false);
 
             builder
-                .HasOne(mrr => mrr.Member)
-                .WithMany(m => m.MessageInfo)
-                .HasForeignKey(mrr => mrr.MemberId)
+                .HasOne(mr => mr.Member)
+                .WithMany(cm => cm.MessageStatuses)
+                .HasForeignKey(x => new { x.UserId, x.ChatId })
                 .OnDelete(DeleteBehavior.Cascade);
 
             builder
-                .HasOne(mrr => mrr.Message)
-                .WithMany(m => m.MessageInfo)
-                .HasForeignKey(mrr => mrr.MessageId)
+                .HasOne(ms => ms.Message)
+                .WithMany(m => m.MessageStatuses)
+                .HasForeignKey(ms => ms.MessageId)
                 .OnDelete(DeleteBehavior.NoAction);
 
             builder.ToTable("MessageStatuses");

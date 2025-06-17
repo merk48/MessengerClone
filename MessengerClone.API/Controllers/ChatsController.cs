@@ -1,6 +1,9 @@
 ﻿using FluentValidation;
 using MessengerClone.Domain.Abstractions;
+using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.Utils.Enums;
+using MessengerClone.Service.Features.ChatMembers.DTOs;
+using MessengerClone.Service.Features.ChatMembers.Services;
 using MessengerClone.Service.Features.Chats.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -66,7 +69,7 @@ namespace MessengerClone.API.Controllers
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _chatService.GetUserAllChatIdsAsync(_userContext.UserId, cancellationToken, page,size);
+                var result = await _chatService.GetAllChatIdsForUserAsync(_userContext.UserId, cancellationToken, page,size);
 
                 return result.Succeeded
                    ? SuccessResponse(result.Data, "Chats Ids retrieved successfully.")

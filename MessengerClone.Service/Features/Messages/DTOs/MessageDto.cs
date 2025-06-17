@@ -17,7 +17,7 @@ namespace MessengerClone.Service.Features.DTOs
         public bool IsPinned { get; set; }
         public DateTime SentAt { get; set; }
         public UserDto Sender { get; set; } = null!;
-        public List<MessageStatusDto> MessageInfo { get; set; } = new();
+        public List<MessageStatusDto> Statuses { get; set; } = new();
         public List<MessageReactionDto>? Reactions { get; set; }
     }
 }

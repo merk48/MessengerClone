@@ -77,7 +77,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.MemberId == userId);
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.UserId == userId);
 
                 if (status == null)
                     return Result.Failure("Status not found!");
@@ -104,7 +104,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.MemberId == userId);
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.UserId == userId);
 
                 if (status == null) 
                     return Result.Failure("Status not found!");
@@ -154,7 +154,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             try
             {
                 var unReadMessagesCount = await _unitOfWork.Repository<MessageStatus>().Table
-                    .Where(x => x.Message.ChatId == chatId && x.MemberId == currentUserId && x.Status != enMessageStatus.Read)
+                    .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
                     .CountAsync();
 
                 return Result<int>.Success(unReadMessagesCount);
@@ -171,13 +171,13 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             try
             {
                 var query = _unitOfWork.Repository<MessageStatus>().Table
-                     .Where(x => x.Message.ChatId == chatId && x.MemberId == currentUserId && x.Status != enMessageStatus.Read)
+                     .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
                      .Include(x => x.Message)
                      .Select(x => x.Message)
                      .Distinct()
                      .Include(x => x.Sender)
                      .Include(x => x.Attachment)
-                     .Include(x => x.MessageInfo)
+                     .Include(x => x.MessageStatuses)
                      .Include(x => x.MessageReactions)
                      .OrderByDescending(x => x.CreatedAt)
                      .AsQueryable();

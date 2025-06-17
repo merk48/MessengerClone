@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
 using MessengerClone.Domain.Entities;
-using MessengerClone.Domain.Utils.Enums;
 using MessengerClone.Service.Features.MessageStatuses.DTOs;
 
 namespace MessengerClone.Service.Features.MessageStatuses.Profiles
@@ -10,7 +9,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Profiles
         public MessageStatusProfile()
         {
             CreateMap<MessageStatus, MessageStatusDto>()
-            .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.Member));
+            .ForMember(dest => dest.Member, opt => opt.MapFrom(src => src.Member));
 
             CreateMap<AddMessageStatusDto, MessageStatus>();
                 //.ForMember(dest => dest.Status, opt => opt.MapFrom(src => enMessageStatus.Sent));

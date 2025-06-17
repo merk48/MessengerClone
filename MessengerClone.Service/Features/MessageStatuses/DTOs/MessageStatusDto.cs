@@ -12,6 +12,6 @@ namespace MessengerClone.Service.Features.MessageStatuses.DTOs
         public DateTime CreatedAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? ReadAt { get; set; } 
-        public ChatMemberDto User { get; set; } = null!;
+        public ChatMemberDto Member { get; set; } = null!;
     }
 }

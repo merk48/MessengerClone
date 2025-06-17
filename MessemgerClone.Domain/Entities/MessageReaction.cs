@@ -5,14 +5,15 @@ namespace MessengerClone.Domain.Entities
 {
     public class MessageReaction : ICreateAt
     {
+        // Composite Key: MessageId + UserId + ChatId
+        public int? MessageId { get; set; }
+        public int UserId { get; set; }
+        public int ChatId { get; set; }
         public enMessageReactionType ReactionType { get; set; } 
         public DateTime CreatedAt { get; set; } // Reacted at
         
         // Navigation
-        public int MemberId { get; set; }
         public ChatMember Member { get; set; } = null!;
-
-        public int? MessageId { get; set; }
         public Message? Message { get; set; }
     }
 }
