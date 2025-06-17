@@ -14,6 +14,6 @@ namespace MessengerClone.Domain.Entities
         public int? DeletedBy  {get; set; }
 
         public Message Message { get; set; } = null!;
-        public ChatMember? Deleter  {get; set; }
+        public ApplicationUser? Deleter  {get; set; }
     }
 }

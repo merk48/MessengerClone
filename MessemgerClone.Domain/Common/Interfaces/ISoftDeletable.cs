@@ -8,7 +8,7 @@ namespace MessengerClone.Domain.Common.Interfaces
         bool IsDeleted { get; set; }
         DateTime? DateDeleted { get; set; }
         int? DeletedBy { get; set; }
-        ChatMember? Deleter { get; set; }
+        ApplicationUser? Deleter { get; set; }
 
         void Delete()
         {

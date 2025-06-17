@@ -190,14 +190,16 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
 
                 var messages = await query.ToListAsync();
 
-                List<MessageDto> messageDtos = new();
+                //List<MessageDto> messageDtos = new();
 
-                foreach (var msg in messages)
-                {
-                    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
+                var messageDtos = await query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
 
-                    messageDtos.Add(dto);
-                }
+                //foreach (var msg in messages)
+                //{
+                //    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
+
+                //    messageDtos.Add(dto);
+                //}
 
                 if (page.HasValue && size.HasValue)
                 {

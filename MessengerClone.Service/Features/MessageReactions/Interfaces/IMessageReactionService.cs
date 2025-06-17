@@ -6,7 +6,7 @@ namespace MessengerClone.Service.Features.MessageReactions.Interfaces
 {
     public interface IMessageReactionService
     {
-        Task<Result<MessageReactionDto>> AddReactToMessageAsync(int messageId, int currentUserId, AddMessageReactionDto dto);
-        Task<Result> RemoveReactionToMessageAsync(int messageId ,int currentUserId);
+        Task<Result<MessageReactionDto>> AddReactToMessageAsync(int chatId, int messageId, int currentUserId, AddMessageReactionDto dto);
+        Task<Result> RemoveReactionToMessageAsync(int chatId, int messageId ,int currentUserId);
     }
 }

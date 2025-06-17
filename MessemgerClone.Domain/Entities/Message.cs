@@ -1,5 +1,6 @@
 ﻿using MessengerClone.Domain.Common;
 using MessengerClone.Domain.Common.Interfaces;
+using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Domain.Utils.Enums;
 
 namespace MessengerClone.Domain.Entities
@@ -21,7 +22,7 @@ namespace MessengerClone.Domain.Entities
         // Navigation
         public Chat Chat { get; set; } = null!;
         public ChatMember Sender { get; set; } = null!;
-        public ChatMember? Deleter { get; set; }
+        public ApplicationUser? Deleter { get; set; }
         public ChatMember? PinnedByMember { get; set; }
         public List<MessageStatus> MessageStatuses { get; set; } = new();
         public List<MessageReaction> MessageReactions { get; set; } = new();

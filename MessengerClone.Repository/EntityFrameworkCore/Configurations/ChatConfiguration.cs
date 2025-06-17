@@ -50,7 +50,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
                 .IsRequired(false);
 
             builder
-            .HasOne(x => x.DeletedBy)
+            .HasOne(x => x.Deleter)
             .WithMany()
             .HasForeignKey(x => x.DeletedBy)
             .IsRequired(false)
