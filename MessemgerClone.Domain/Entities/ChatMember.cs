@@ -18,6 +18,5 @@ namespace MessengerClone.Domain.Entities
 
         public List<MessageReaction>? MessageReactions { get; set; } = new();
         public List<MessageStatus>? MessageStatuses { get; set; } = new();
-        public List<GroupChat>? UpdatedGroupConversations { get; set; } = new();
     }
 }

@@ -24,17 +24,21 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.Property(ms => ms.ReadAt)
              .IsRequired(false);
 
-            builder
-                .HasOne(mr => mr.Member)
-                .WithMany(cm => cm.MessageStatuses)
-                .HasForeignKey(x => new { x.UserId, x.ChatId })
-                .OnDelete(DeleteBehavior.Cascade);
 
             builder
                 .HasOne(ms => ms.Message)
                 .WithMany(m => m.MessageStatuses)
                 .HasForeignKey(ms => ms.MessageId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade); 
+            
+            builder
+                .HasOne(mr => mr.Member)
+                .WithMany(cm => cm.MessageStatuses)
+                .HasForeignKey(x => new { x.UserId, x.ChatId })
+                .HasPrincipalKey(cm => new { cm.UserId, cm.ChatId })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(ms => new { ms.UserId, ms.ChatId });
 
             builder.ToTable("MessageStatuses");
         }

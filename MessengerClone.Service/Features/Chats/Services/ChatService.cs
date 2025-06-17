@@ -331,11 +331,11 @@ namespace MessengerClone.Service.Features.Chats.Services
                 List<AddChatMemberDto> members = new();
 
                 if (!dto.MemberIds.Contains(currentUserId))
-                    members.Add(new AddChatMemberDto { UserId = currentUserId ,ChatRole = enChatRole.Owner });
+                    members.Add(new AddChatMemberDto { UserId = currentUserId ,ChatRole = enChatRole.GroupOwner });
 
                 foreach (int memberId in dto.MemberIds)
                 {
-                    members.Add(new AddChatMemberDto { UserId = memberId, ChatRole = enChatRole.ChatMember });
+                    members.Add(new AddChatMemberDto { UserId = memberId, ChatRole = enChatRole.GroupMember });
                 }
 
                 var addGroupChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members, groupEntity.Id);
@@ -495,7 +495,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be renamed");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to rename chat {chatId} that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be renamed");
@@ -547,7 +547,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be reset its cover image");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to reset chat {chatId} cover image that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be reset its cover imag");
@@ -627,7 +627,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be delete its cover image");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to delete chat {chatId} cover image that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be delete its cover imag");
@@ -734,7 +734,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be update its description");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to update chat {chatId} description that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be update its description");
@@ -791,7 +791,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be deleted");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to delete chat {chatId} that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, deleted");

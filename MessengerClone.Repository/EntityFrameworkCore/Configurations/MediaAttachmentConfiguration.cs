@@ -29,6 +29,13 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
               .OnDelete(DeleteBehavior.Cascade);
 
 
+            builder
+             .HasOne(x => x.Deleter)
+             .WithMany()
+             .HasForeignKey(x => x.DeletedBy)
+             .IsRequired(false)
+             .OnDelete(DeleteBehavior.Restrict);
+
             builder.ToTable("MediaAttachments");
         }
     }

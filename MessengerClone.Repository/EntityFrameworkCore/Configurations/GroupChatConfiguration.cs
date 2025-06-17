@@ -30,13 +30,13 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.HasOne(gc => gc.Creator)
                    .WithMany(u => u.CreatedGroupConversations)
                    .HasForeignKey(gc => gc.CreatedBy)
-                   .OnDelete(DeleteBehavior.NoAction);
+                   .OnDelete(DeleteBehavior.Restrict);
 
             // Updater: one-to-many (optional)
             builder.HasOne(gc => gc.Updater)
                    .WithMany()
                    .HasForeignKey(gc => gc.UpdatedBy)
-                   .OnDelete(DeleteBehavior.NoAction);
+                   .OnDelete(DeleteBehavior.Restrict);
 
 
         }

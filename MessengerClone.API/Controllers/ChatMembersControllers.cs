@@ -133,7 +133,7 @@ namespace MessengerClone.API.Controllers
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first."); 
                 
-                var result = await _chatMemberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = _userContext.UserId ,ChatRole = enChatRole.ChatMember}, chatId);
+                var result = await _chatMemberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = _userContext.UserId ,ChatRole = enChatRole.GroupMember}, chatId);
 
                 return result.Succeeded
                     ? CreatedResponse("GetMemberInChat", new { chatId = chatId , Id = _userContext.UserId}, result.Data!, $"Chat member created successfully.")

@@ -19,12 +19,12 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.HasOne(cp => cp.User)
                 .WithMany(u => u.ChatMembers)
                 .HasForeignKey(cp => cp.UserId)
-             .OnDelete(DeleteBehavior.Restrict);
+             .OnDelete(DeleteBehavior.Cascade);
            
             builder.HasOne(cp => cp.Chat)
               .WithMany(c => c.ChatMembers)
               .HasForeignKey(cp => cp.ChatId)
-             .OnDelete(DeleteBehavior.Restrict);
+             .OnDelete(DeleteBehavior.Cascade);
 
             builder.ToTable("ChatMembers");
         }
