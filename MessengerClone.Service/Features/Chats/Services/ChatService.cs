@@ -146,18 +146,15 @@ namespace MessengerClone.Service.Features.Chats.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                //var chat =  _unitOfWork.Repository<Chat>()
-                //   .Table
-                //   //.Include(c => c.LastMessage)
-                //   .Include(c => c.ChatMembers)
-                //       .ThenInclude(cm => cm.User)
-                //   .FirstOrDefaultAsync(c => c.Id == chatId);
 
-                var chat = await _unitOfWork.Repository<GroupChat>().GetAsync(x => x.Id == chatId, include: x => x.Include(x => x.ChatMembers).ThenInclude(cm => cm.User));
-           
+                var chat = await _unitOfWork.Repository<Chat>()
+                    .GetAsync(x => x.Id == chatId, 
+                    include: x => x
+                    .Include(x => x.LastMessage)
+                    .Include(x => x.ChatMembers)
+                        .ThenInclude(cm => cm.User));
 
 
-                //Console.WriteLine(chat.LastMessage?.Content); // Check if it's populated
                 if (chat == null)
                 {
                     _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(GetChatMetadataById));
@@ -209,7 +206,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     .GetAsync(x =>
                     x.ChatMembers!.Any(m => m.UserId == dto.OtherMemberId)
                     && x.ChatMembers!.Any(m => m.UserId == currentUserId)
-                    && x.ChatMembers!.Count == 2);
+                    && x.Type == enChatType.Direct);
 
 
                 // Already there an chat between them
@@ -222,6 +219,8 @@ namespace MessengerClone.Service.Features.Chats.Services
                         if (hasOwnTr) await _unitOfWork.RollbackAsync();
                         return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
                     }
+                    var existingDirectDto2 = (await MapperHelper.BuildChatMetadataDto(existing, currentUserId, _messageStatusService, _mapper)) as DirectChatMetadataDto;
+
 
                     if (!(await _unitOfWork.CommitAsync()).Succeeded)
                     {
@@ -229,13 +228,14 @@ namespace MessengerClone.Service.Features.Chats.Services
                         return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
                     }
 
-                   _logger.LogInformation("Direct Chat {Id} has retrieved successfully", existingDirectDto.Id);
+                    _logger.LogInformation("Direct Chat {Id} has retrieved successfully", existingDirectDto.Id);
                     return Result<DirectChatMetadataDto>.Success(existingDirectDto);
                 }
 
                 DirectChat directEntity = _mapper.Map<DirectChat>(dto);
-               
-                await _unitOfWork.Repository<Chat>().AddAsync(directEntity);
+                directEntity.LastMessage = new();
+
+                 await _unitOfWork.Repository<Chat>().AddAsync(directEntity);
 
                 var saveChatResult = await _unitOfWork.SaveChangesAsync();
                 if (!saveChatResult.Succeeded)
@@ -258,30 +258,33 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<DirectChatMetadataDto>.Failure("Failed to save the chat members.");
                 }
 
-
-                var getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
-
-                if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                Result<ChatMetadataDto> getDirectDtoResult = new();
+                if (hasOwnTr)
                 {
-                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
-                }
+                    var commitTrResult = await _unitOfWork.CommitAsync();
+                    if (!commitTrResult.Succeeded)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
+                    }
 
+                    _logger.LogInformation("New Direct Chat {Id} has added successfully", directEntity.Id);
 
-                if (!hasOwnTr)
+                    getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
+                    if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                        return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
+                    
                     return Result<DirectChatMetadataDto>.Success(directDto);
 
-                var commitTrResult = await _unitOfWork.CommitAsync();
-                if (!commitTrResult.Succeeded)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
                 }
+                else
+                {
+                    getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
+                    if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                        return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
 
-                _logger.LogInformation("New Direct Chat {Id} has added successfully", directEntity.Id);
-
-                return Result<DirectChatMetadataDto>.Success(directDto);
-
+                    return Result<DirectChatMetadataDto>.Success(directDto);
+                }
             }
             catch (OperationCanceledException ex)
             {
@@ -318,6 +321,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
 
                 GroupChat groupEntity = _mapper.Map<GroupChat>(dto);
+                groupEntity.LastMessage = new();
 
                 await _unitOfWork.Repository<GroupChat>().AddAsync(groupEntity);
 
@@ -674,23 +678,22 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
 }
 
-        public async Task<Result> UpdateGroupLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
+        public async Task<Result> UpdateChatLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
         {
              try 
              {
-                var entity = await _unitOfWork.Repository<GroupChat>().GetAsync(x => x.Id == chatId,
-                include: x => x.Include(x => x.ChatMembers)
-                                .Include(x => x.LastMessage!));
+                var entity = await _unitOfWork.Repository<Chat>().GetAsync(x => x.Id == chatId,
+                                include: x => x.Include(x => x.ChatMembers));
 
                 if (entity == null)
                 {
-                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateGroupLastMessageAsync));
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateChatLastMessageAsync));
                     return Result.Failure("Group Chat not found");
                 }
 
                 entity.LastMessage = _mapper.Map<LastMessageSnapshot>(msgDto);
 
-                await _unitOfWork.Repository<GroupChat>().UpdateAsync(entity);
+                await _unitOfWork.Repository<Chat>().UpdateAsync(entity);
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
 
@@ -705,12 +708,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateGroupLastMessageAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateChatLastMessageAsync));
                 return Result.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateGroupLastMessageAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateChatLastMessageAsync));
                 return Result.Failure("Failed update chat description"); ;
             }
            

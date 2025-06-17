@@ -149,6 +149,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 Message? entity = await _unitOfWork.Repository<Message>()
                     .GetAsync(x => x.Id == id && x.SenderId == currentUserId 
                     ,include : x=> x.Include(x => x.Sender)
+                                     .ThenInclude(x => x.User)
                                      .Include(x => x.Attachment)
                                      .Include(x => x.MessageStatuses)
                                         .ThenInclude(x => x.Member)
@@ -247,6 +248,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     {
                         MessageId = entity.Id,
                         UserId = member.UserId,
+                        ChatId = chatId,
                         CreatedAt = entity.CreatedAt,
                         Status = status
                     });
@@ -266,7 +268,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
 
-                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
+                var updateChatLastMessageResult = await _chatService.UpdateChatLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
                 if (!updateChatLastMessageResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
