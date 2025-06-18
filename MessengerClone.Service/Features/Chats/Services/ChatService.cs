@@ -106,7 +106,7 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
         }
 
-        public async Task<Result<DataResult<int>>> GetAllChatIdsForUserAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null)
+        public async Task<Result<DataResult<int>>> GetUserAllChatIdsAsync(int userId, CancellationToken cancellationToken, int? page = null, int? size = null)
         {
             try
             {
@@ -130,12 +130,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(GetAllChatIdsForUserAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(GetUserAllChatIdsAsync));
                 return Result<DataResult<int>>.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(GetAllChatIdsForUserAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(GetUserAllChatIdsAsync));
                 return Result<DataResult<int>>.Failure("Failed to retrieve chats ids from the database"); ;
             }
         }
@@ -678,7 +678,7 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
 }
 
-        public async Task<Result> UpdateChatLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
+        public async Task<Result> UpdateGroupLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
         {
              try 
              {
@@ -687,7 +687,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 if (entity == null)
                 {
-                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateChatLastMessageAsync));
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateGroupLastMessageAsync));
                     return Result.Failure("Group Chat not found");
                 }
 
@@ -708,12 +708,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateChatLastMessageAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateGroupLastMessageAsync));
                 return Result.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateChatLastMessageAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateGroupLastMessageAsync));
                 return Result.Failure("Failed update chat description"); ;
             }
            
@@ -774,7 +774,7 @@ namespace MessengerClone.Service.Features.Chats.Services
         }
 
 
-        public async Task<Result> DeleteAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
+        public async Task<Result> DeleteGroupChatAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             string imageUrl = "";
             try
@@ -784,7 +784,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 if (entity == null)
                 {
-                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(DeleteAsync));
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(DeleteGroupChatAsync));
                     return Result<GroupChatMetadataDto>.Failure("Group Chat not found");
                 }
 
@@ -794,10 +794,10 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be deleted");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupOwner)
                 {
-                    _logger.LogWarning("Attempted to delete chat {chatId} that user {UserId} is not a admin of this caht!", chatId, currentUserId);
-                    return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, deleted");
+                    _logger.LogWarning("Attempted to delete chat {chatId} that user {UserId} is not the owner of this caht!", chatId, currentUserId);
+                    return Result<GroupChatMetadataDto>.Failure("User is not the owner of this chat!, can't be deleted");
                 }
 
 
@@ -825,12 +825,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(DeleteAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(DeleteGroupChatAsync));
                 return Result<GroupChatMetadataDto>.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(DeleteAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(DeleteGroupChatAsync));
                 return Result.Failure("Failed to delete the chat from the database"); ;
             }
         }

@@ -1,9 +1,6 @@
 ﻿using FluentValidation;
 using MessengerClone.Domain.Abstractions;
-using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.Utils.Enums;
-using MessengerClone.Service.Features.ChatMembers.DTOs;
-using MessengerClone.Service.Features.ChatMembers.Services;
 using MessengerClone.Service.Features.Chats.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -69,7 +66,7 @@ namespace MessengerClone.API.Controllers
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _chatService.GetAllChatIdsForUserAsync(_userContext.UserId, cancellationToken, page,size);
+                var result = await _chatService.GetUserAllChatIdsAsync(_userContext.UserId, cancellationToken, page,size);
 
                 return result.Succeeded
                    ? SuccessResponse(result.Data, "Chats Ids retrieved successfully.")
@@ -305,8 +302,8 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpDelete("{id:int}", Name = "DeleteChatAsync")]
-        public async Task<IActionResult> DeleteChatAsync([FromRoute] int Id, CancellationToken cancellationToken)
+        [HttpDelete("{id:int}/group", Name = "DeleteGroupChat")]
+        public async Task<IActionResult> DeleteGroupChatAsync([FromRoute] int Id, CancellationToken cancellationToken)
         {
             if (Id <= 0)
                 return BadRequestResponse("INVALID_CHAT_ID", "Chat id not valid.", "Chat Id should be positive number");
@@ -316,7 +313,7 @@ namespace MessengerClone.API.Controllers
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
 
-                var result = await _chatService.DeleteAsync(Id, _userContext.UserId, cancellationToken);
+                var result = await _chatService.DeleteGroupChatAsync(Id, _userContext.UserId, cancellationToken);
 
                 return result.Succeeded
                    ? SuccessResponse("Chat deleted successfully.")

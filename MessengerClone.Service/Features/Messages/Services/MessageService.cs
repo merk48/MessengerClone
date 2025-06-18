@@ -273,7 +273,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
 
-                var updateChatLastMessageResult = await _chatService.UpdateChatLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
+                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
                 if (!updateChatLastMessageResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to add the message.");
 

@@ -95,7 +95,7 @@ namespace MessengerClone.API.Hubs.Implementations
             try
             {
                 
-                var result = await _chatService.GetAllChatIdsForUserAsync(userId, cancellationToken);
+                var result = await _chatService.GetUserAllChatIdsAsync(userId, cancellationToken);
 
                 if(!result.Succeeded)
                     return Result.Failure("Error retrieving chats for user.");
@@ -231,7 +231,7 @@ namespace MessengerClone.API.Hubs.Implementations
         {
             try
             {
-                var result = await _chatService.GetAllChatIdsForUserAsync(userId, cancellationToken);
+                var result = await _chatService.GetUserAllChatIdsAsync(userId, cancellationToken);
 
                 if (!result.Succeeded)
                     return Result.Failure("Error retrieving chats for user.");
