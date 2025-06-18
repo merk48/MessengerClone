@@ -1,8 +1,11 @@
-﻿using MessengerClone.Domain.IRepository;
+﻿using MessengerClone.Domain.Entities;
+using MessengerClone.Domain.IRepository;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Repository.EntityFrameworkCore.Context;
 using MessengerClone.Repository.Repository;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace MessengerClone.Repository.UnitOfWork

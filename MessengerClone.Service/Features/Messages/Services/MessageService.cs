@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Enums;
@@ -9,30 +10,39 @@ using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.General.Extentions;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.Messages.DTOs;
+using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
+using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Linq.Expressions;
 
 namespace MessengerClone.Service.Features.Messages.Interfaces
 {
           
-    public class MessageService(IUnitOfWork _unitOfWork, IMapper _mapper, IChatMemeberService _memeberService,IMediaAttachmentService _attachmentService, IMessageStatusService _messageStatusService) 
+    public class MessageService(IUnitOfWork _unitOfWork, IMapper _mapper, IChatMemeberService _memeberService,IMediaAttachmentService _attachmentService,
+        IMessageStatusService _messageStatusService , IChatService _chatService) 
         : IMessageService     
     {
-        public async Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int currentUserId, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Message, bool>>? filter = null)
+        public async Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int currentUserId,CancellationToken cancellationToken, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Message, bool>>? filter = null)
         {
             try 
             {
-                var memberInChatResult = await _memeberService.IsUserMemberInChat(chatId,currentUserId);
+                cancellationToken.ThrowIfCancellationRequested();
+                
+                var memberInChatResult = await _memeberService.IsUserMemberInChatAsync(chatId,currentUserId);
 
-                if(!memberInChatResult.Succeeded)
-                    return Result<DataResult<MessageDto>>.Failure(memberInChatResult.Errors); 
+                if (!memberInChatResult.Succeeded)
+                {
+                    return Result<DataResult<MessageDto>>.Failure(memberInChatResult.ToString());
+                }
+
+                if (!memberInChatResult.Data)
+                    return Result<DataResult<MessageDto>>.Failure("User is not a member of this chat, can't be send a message in it!");
 
                 if (page == null) size = 1;
                 if(size == null) size = 50;
 
-                var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesForUserCountAsync(chatId, currentUserId);
+                var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chatId, currentUserId);
 
                 int UnreadCount = 0;
 
@@ -45,7 +55,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                         .AsNoTracking()
                         .Include(x => x.Sender)
                         .Include(x => x.Attachment)
-                        .Include(x => x.MessageInfo)
+                        .Include(x => x.MessageStatuses)
                         .Include(x => x.MessageReactions)
                         .Where(x => x.ChatId == chatId)
                         .AsQueryable();
@@ -64,18 +74,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value + UnreadCount); // test this
 
-                var messages = await query.ToListAsync();
 
-                List<MessageDto> messageDtos = new();
+                var messages = await query.ToListAsync(cancellationToken);
 
-                foreach (var msg in messages)
+                var messageDtos = _mapper.Map<List<MessageDto>>(messages, opt =>
                 {
-                    var dto = _mapper.Map<MessageDto>(msg, opts => {
-                        opts.Items["JoinedAt"] = msg.CreatedAt;
-                    });
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
-                    messageDtos.Add(dto);
-                }
 
                 if (page.HasValue && size.HasValue)
                 {
@@ -96,7 +102,6 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                         TotalRecordsCount = totalCount
                     });
 
-
             }
             catch (Exception)
             {
@@ -105,15 +110,17 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
 
-        public async Task<Result<LastMessageDto>> GetLastestMessageInChatAsync(int chatId, int currentUserId)
+        public async Task<Result<LastMessageDto>> GetLatestMessageInChatAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 Message? entity = await _unitOfWork.Repository<Message>()
                     .GetAsync(x => x.ChatId == chatId && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -131,24 +138,36 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
 
-        public async Task<Result<MessageDto>> GetMessageByIdForUserAsync(int id, int currentUserId)
+        public async Task<Result<MessageDto>> GetMessageByIdForUserAsync(int id, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 Message? entity = await _unitOfWork.Repository<Message>()
-                    .GetAsync(x => x.Id == id && x.SenderId ==currentUserId 
-                    ,include : x=> x.Include(x => x.Sender)
+                    .GetAsync(x => x.Id == id && x.SenderId == currentUserId
+                    , include: x => x.Include(x => x.Sender)
+                                     .ThenInclude(x => x.User)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
-                                     .Include(x => x.MessageReactions));
+                                     .Include(x => x.MessageStatuses.Where(ms => ms.UserId != currentUserId))
+                                        .ThenInclude(x => x.Member)
+                                            .ThenInclude(x => x.User)
+                                     .Include(x => x.MessageReactions)
+                                        .ThenInclude(x => x.Member)
+                                        .ThenInclude(x => x.User));
+
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                //entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
+
 
                 return Result<MessageDto>.Success(messageDto);
-
             }
             catch (Exception)
             {
@@ -157,12 +176,24 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
 
-        public async Task<Result<MessageDto>> AddMessageAsync(AddMessageDto dto, int senderId, int chatId)
+        public async Task<Result<MessageDto>> AddMessageAsync(AddMessageDto dto, int senderId, int chatId, CancellationToken cancellationToken)
         {
             var hasOwnTr = false;
 
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+               
+                var userIsMemberResult = await _memeberService.IsUserMemberInChatAsync(chatId, senderId);
+                if (!userIsMemberResult.Succeeded)
+                {
+                    return Result<MessageDto>.Failure(userIsMemberResult.ToString());
+                }
+
+                if(!userIsMemberResult.Data)
+                    return Result<MessageDto>.Failure("User is not a member of this chat, can't be send a message in it!");
+
+
                 var startTrResult = await _unitOfWork.StartTransactionAsync();
 
                 if (startTrResult.Succeeded)
@@ -172,9 +203,11 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 else
                     return Result<MessageDto>.Failure("Falied to start a transaction.");
 
-                Message entity = _mapper.Map<Message>(dto);
-                entity.SenderId = senderId;
-                entity.ChatId = chatId;
+
+                Message entity = _mapper.Map<Message>(dto, opt => {
+                    opt.Items["SenderId"] = senderId;
+                    opt.Items["ChatId"] = chatId;
+                });
 
                 await _unitOfWork.Repository<Message>().AddAsync(entity);
 
@@ -199,27 +232,53 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 
                 #endregion
 
-                var savedMessage = await _unitOfWork.Repository<Message>().GetAsync(
-                    x => x.Id == entity.Id,
-                    include: q => q.Include(m => m.Sender)
-                                   .Include(m => m.Attachment)
-                                   .Include(m => m.MessageInfo)
-                                   .Include(m => m.MessageReactions)
-                                    );
-
-                if (savedMessage == null)
+                // add Message Status
+                // as number of msg'chat members should add status to this msg wil all default values
+                var getChatResult = await _chatService.GetChatMetadataById(chatId, senderId, cancellationToken);
+                if (!getChatResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<MessageDto>.Failure("Message not found after save.");
+                    return Result<MessageDto>.Failure(getChatResult.ToString());
                 }
 
-                var messageDto = _mapper.Map<MessageDto>(savedMessage, opts => {
-                    opts.Items["JoinedAt"] = entity.CreatedAt;
-                });
+                List<AddMessageStatusDto> info = new();
 
+                foreach (var member in getChatResult.Data!.Members)
+                {
+                    enMessageStatus status = enMessageStatus.Sent;
+                    if (member.UserId == senderId)
+                        status = enMessageStatus.Read;
+
+                    info.Add(new AddMessageStatusDto()
+                    {
+                        MessageId = entity.Id,
+                        UserId = member.UserId,
+                        ChatId = chatId,
+                        CreatedAt = entity.CreatedAt,
+                        Status = status
+                    });
+                }
+
+                var addMessageInfoResult = await _messageStatusService.AddMessageInfoAsync(info);
+
+                if (!addMessageInfoResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<MessageDto>.Failure(addMessageInfoResult.ToString());
+                }
+                
+                var messageDtoResult = await GetMessageByIdForUserAsync(entity.Id, senderId,cancellationToken);
+
+                if (!messageDtoResult.Succeeded )
+                    return Result<MessageDto>.Failure("Failed to add the message.");
+
+
+                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
+                if (!updateChatLastMessageResult.Succeeded)
+                    return Result<MessageDto>.Failure("Failed to add the message.");
 
                 if (!hasOwnTr)
-                    return Result<MessageDto>.Success(messageDto);
+                    return Result<MessageDto>.Success(messageDtoResult.Data);
 
                 var commitTrResult = await _unitOfWork.CommitAsync();
                 if (!commitTrResult.Succeeded)
@@ -228,8 +287,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to commit transaction.");
                 }
 
-                return Result<MessageDto>.Success(messageDto);
-
+                return Result<MessageDto>.Success(messageDtoResult.Data);
             }
             catch (Exception)
             {
@@ -239,22 +297,24 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
 
-        public async Task<Result<MessageDto>> PinMessageAsync(int Id, int currentUserId)
+        public async Task<Result<MessageDto>> PinMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 Message? entity = await _unitOfWork.Repository<Message>()
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = true;
-                entity.PinnedById = currentUserId;
+                entity.PinnedBy = currentUserId;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -263,7 +323,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to pin the message!");
 
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -275,22 +338,24 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
 
-        public async Task<Result<MessageDto>> UnPinMessageAsync(int Id, int currentUserId)
+        public async Task<Result<MessageDto>> UnPinMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 Message? entity = await _unitOfWork.Repository<Message>()
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = false;
-                entity.PinnedById = null;
+                entity.PinnedBy = null;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -299,7 +364,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to unpin the message!");
 
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -311,29 +379,21 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             }
         }
         
-        public async Task<Result<MessageDto>> DeleteMessageAsync(int Id, int currentUserId)
+        public async Task<Result<MessageDto>> DeleteMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken)
         {
-            var hasOwnTr = false;
-
             try
             {
-                var startTrResult = await _unitOfWork.StartTransactionAsync();
-
-                if (startTrResult.Succeeded)
-                    hasOwnTr = true;
-                else if (startTrResult.FailureType == enFailureType.TransactionInProgress)
-                    hasOwnTr = false;
-                else
-                    return Result<MessageDto>.Failure("Falied to start a transaction.");
-
-
+                cancellationToken.ThrowIfCancellationRequested();
+               
                 Message? entity = await _unitOfWork.Repository<Message>()
-                    .GetAsync(x => x.Id == Id && x.SenderId == currentUserId ,
-                                    include: x => x.Include(x => x.Attachment)!);
+                   .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
+                   , include: x => x.Include(x => x.Sender)
+                                    .Include(x => x.Attachment)
+                                    .Include(x => x.MessageStatuses)
+                                    .Include(x => x.MessageReactions));
 
                 if (entity == null)
                 {
-                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
                     return Result<MessageDto>.Failure("Message not found!");
                 }
 
@@ -343,7 +403,6 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     var deleteAttachmentResult = await _attachmentService.DeleteAsync(entity.Id);
                     if (!deleteAttachmentResult.Succeeded)
                     {
-                        if (hasOwnTr) await _unitOfWork.RollbackAsync();
                         return Result<MessageDto>.Failure(deleteAttachmentResult.ToString());
                     }
                 }
@@ -353,40 +412,52 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 var saveResult = await _unitOfWork.SaveChangesAsync();
                 if (!saveResult.Succeeded)
                 {
-                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
                 }
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
             }
             catch (Exception)
             {
                 //Log.Error(ex.Message);
-                if (hasOwnTr) await _unitOfWork.RollbackAsync();
                 return Result<MessageDto>.Failure("Failed to delete the message from the database");
             }
         }
 
-        public async Task<Result<MessageDto>> UndoDeleteMessageAsync(int Id, int currentUserId)
+        public async Task<Result<MessageDto>> UndoDeleteMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 Message? entity = await _unitOfWork.Repository<Message>()
-                  .GetAsync(x => x.Id == Id);
+                   .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
+                   , include: x => x.Include(x => x.Sender)
+                                    .Include(x => x.Attachment)
+                                    .Include(x => x.MessageStatuses)
+                                    .Include(x => x.MessageReactions));
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.UndoDelete();
 
+                await _unitOfWork.Repository<Message>().UpdateAsync(entity);
+
                 var saveResult = _unitOfWork.SaveChanges();
 
                 if (!saveResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return messageDto is not null
                     ? Result<MessageDto>.Success(messageDto)

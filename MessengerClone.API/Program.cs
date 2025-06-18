@@ -6,7 +6,6 @@ using MessengerClone.API.General;
 using MessengerClone.API.Hubs;
 using MessengerClone.API.Hubs.Chathub.Interfaces;
 using MessengerClone.API.Hubs.Implementations;
-using MessengerClone.API.Providers;
 using MessengerClone.Domain.Abstractions;
 using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Domain.IRepository;
@@ -31,7 +30,6 @@ using MessengerClone.Service.Features.Files.Services;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.MediaAttachments.Services;
 using MessengerClone.Service.Features.MessageReactions.Interfaces;
-using MessengerClone.Service.Features.MessageReactions.Services;
 using MessengerClone.Service.Features.Messages.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Services;
@@ -60,6 +58,8 @@ using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using MessengerClone.Service.Features.Chats.Validators;
 using MessengerClone.Service.Features.Chats.DTOs;
+using MessengerClone.Service.Features.MessageReactions.Services;
+using MessengerClone.API.Hubs.Providers;
 
 namespace MessengerClone
 {
@@ -80,18 +80,16 @@ namespace MessengerClone
             // EF Core Configuration
             builder.Services.AddScoped<AuditByInterceptor>();
             builder.Services.AddScoped<SoftDeleteInterceptor>();
-            builder.Services.AddScoped<LatestChatsUpdateInterceptor>();
             builder.Services.AddScoped<AuditAtInterceptor>();
 
             builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
             {
                 var auditByInterceptor = serviceProvider.GetRequiredService<AuditByInterceptor>();
-                var latestChatsUpdateInterceptor = serviceProvider.GetRequiredService<LatestChatsUpdateInterceptor>();
+                //var latestChatsUpdateInterceptor = serviceProvider.GetRequiredService<LatestChatsUpdateInterceptor>();
                 var softDeleteInterceptor = serviceProvider.GetRequiredService<SoftDeleteInterceptor>();
 
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
                 .AddInterceptors(softDeleteInterceptor,
-                                 latestChatsUpdateInterceptor,
                                  new AuditAtInterceptor(),
                                  auditByInterceptor);
 
@@ -116,8 +114,8 @@ namespace MessengerClone
 
             #region Custom Services
             // Configuration Options 
-            builder.Services.Configure<EmailSettingsOptions>(builder.Configuration.GetSection("EmailSettings"));
-            builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JWT"));
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+            builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JWT"));
             builder.Services.Configure<TwilioSettings>(builder.Configuration.GetSection("TwilioSettings"));
             builder.Services.Configure<AppSettings>(builder.Configuration.GetSection("AppSettings"));
 
@@ -154,7 +152,7 @@ namespace MessengerClone
 
             using (var serviceProvider = builder.Services.BuildServiceProvider())
             {
-                var jwtOptions = serviceProvider.GetRequiredService<IOptions<JwtOptions>>().Value;
+                var jwtOptions = serviceProvider.GetRequiredService<IOptions<JwtSettings>>().Value;
 
             builder.Services.AddAuthentication(options =>
                 {
@@ -206,10 +204,12 @@ namespace MessengerClone
             .AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.TypeNameHandling = TypeNameHandling.Auto;
-            }).AddJsonOptions(options =>
-            {
-                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                options.SerializerSettings.Converters.Add(new Newtonsoft.Json.Converters.StringEnumConverter()); // 👈 This is key
             });
+            //.AddJsonOptions(options =>
+            // {
+            //     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            // });
 
 
 

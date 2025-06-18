@@ -10,13 +10,13 @@ namespace MessengerClone.Domain.Entities
         public enChatType Type { get; set; }
         public DateTime CreatedAt { get; set; }
         public enChatTheme ChatTheme { get; set; }
-        public LastMessageSnapshot? LastMessage { get; set; } = new();
+        public LastMessageSnapshot? LastMessage { get; set; } 
         public string? Title { get; set; }
 
         public bool IsDeleted { get; set; }
         public DateTime? DateDeleted { get; set; }
-        public int? DeletedById { get; set; }
-        public ApplicationUser? DeletedBy { get; set; }
+        public int? DeletedBy { get; set; }
+        public ApplicationUser? Deleter { get; set; }
 
         //Navigation
         public List<ChatMember> ChatMembers { get; set; } = new();

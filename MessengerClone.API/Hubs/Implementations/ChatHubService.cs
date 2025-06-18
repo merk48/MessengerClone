@@ -43,7 +43,7 @@ namespace MessengerClone.API.Hubs.Implementations
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 
-                var addMemberResult = await _chatMemeberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = userId, ChatId = chatId });
+                var addMemberResult = await _chatMemeberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = userId}, chatId);
 
                 if(!addMemberResult.Succeeded)
                     return Result.Failure($"{addMemberResult.ToString()}");
@@ -59,7 +59,7 @@ namespace MessengerClone.API.Hubs.Implementations
                         { 
                             Content = $"{result.Data.Username} has joined this chat!",
                             Type = enMessageType.UserJoined,
-                        }, userId, chatId);
+                        }, userId, chatId, cancellationToken);
 
                     if(!addMessageResult.Succeeded)
                         return Result.Failure($"{result.ToString()}");
@@ -195,7 +195,7 @@ namespace MessengerClone.API.Hubs.Implementations
                        {
                            Content = $"{result.Data.Username} has left this chat!",
                            Type = enMessageType.UserLeft,
-                       }, userId, chatId);
+                       }, userId, chatId, cancellationToken);
 
                     if (!addMessageResult.Succeeded)
                         return Result.Failure($"{result.ToString()}");
@@ -307,7 +307,7 @@ namespace MessengerClone.API.Hubs.Implementations
                 if (!_userConnections[userId].Any(x => x.ChatId == chatId))
                     return Result.Failure("You cannot send messages. You should join a chat first");
 
-                var result = await _messageService.AddMessageAsync(dto,userId,chatId);
+                var result = await _messageService.AddMessageAsync(dto,userId,chatId, cancellationToken);
 
                if(result.Succeeded)
                {

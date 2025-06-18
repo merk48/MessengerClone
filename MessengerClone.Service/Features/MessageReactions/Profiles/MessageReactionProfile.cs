@@ -9,11 +9,12 @@ namespace MessengerClone.Service.Features.MessageReactions.Profiles
         public MessageReactionProfile()
         {
             CreateMap<MessageReaction, MessageReactionDto>()
-                 .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User));
+                 .ForMember(dest => dest.Member, opt => opt.MapFrom(src => src.Member));
 
             CreateMap<AddMessageReactionDto, MessageReaction>()
                 .ForMember(dest => dest.UserId,opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["CurrentUserId"]))
-                .ForMember(dest => dest.MessageId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["MessageId"]));
+                .ForMember(dest => dest.MessageId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["MessageId"]))
+                .ForMember(dest => dest.ChatId, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["ChatId"]));
         }
     }
 

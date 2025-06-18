@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using MessengerClone.Domain.Utils.Enums;
+using Microsoft.AspNetCore.Http;
 
 namespace MessengerClone.Service.Features.Auth.DTOs
 {
@@ -11,6 +12,6 @@ namespace MessengerClone.Service.Features.Auth.DTOs
         //[UniqueUser]
         public required string Email { get; set; }
         public required string Password { get; set; }
-        public List<string> Roles { get; set; } = null!;
+        public List<enAppUserRoles> Roles { get; set; } = null!;
     }
 }

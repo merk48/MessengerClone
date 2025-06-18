@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
-namespace MessengerClone.API.Providers
+namespace MessengerClone.API.Hubs.Providers
 {
     public class MyIntUserIdProvider : IUserIdProvider
     {

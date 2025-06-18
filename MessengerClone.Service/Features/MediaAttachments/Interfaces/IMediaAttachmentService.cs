@@ -6,7 +6,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Interfaces
 {
     public interface IMediaAttachmentService
     {
-        Task<Result<AttachmentDto>> AddAsync(int messageId, AddAttachmentDto dto);
+        Task<Result<MediaAttachmentDto>> AddAsync(int messageId, AddAttachmentDto dto);
         Task<Result> DeleteAsync(int messageId);
     }
 

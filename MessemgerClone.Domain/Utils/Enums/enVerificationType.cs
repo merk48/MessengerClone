@@ -1,4 +1,6 @@
-﻿namespace MessengerClone.Domain.Utils.Enums;
+﻿using MessengerClone.Utilities.Constants;
+
+namespace MessengerClone.Domain.Utils.Enums;
 
 public enum enVerificationType
 {

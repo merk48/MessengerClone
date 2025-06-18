@@ -1,18 +1,10 @@
 ﻿using FluentValidation;
 using MessengerClone.Domain.Abstractions;
-using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Service.Features.Auth.DTOs;
 using MessengerClone.Service.Features.Auth.Interfaces;
-using MessengerClone.Service.Features.Users.DTOs;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Threading;
 using static MessengerClone.API.Response.ApiResponseHelper;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace MessengerClone.API.Controllers
 {

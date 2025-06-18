@@ -2,6 +2,6 @@
 {
     public class PinUnPinMessageDto
     {
-        public bool IsPinned { get; set; }
+        public bool Pin { get; set; }
     }
 }

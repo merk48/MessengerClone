@@ -7,6 +7,7 @@ using MessemgerClone.Domain.Entities.Identity;
 using MessengerClone.Utilities.Constants;
 using MessemgerClone.Repository.DbInitializer;
 using MessengerClone.Domain.Entities.Identity;
+using MessengerClone.Domain.Utils.Enums;
 
 
 namespace MessengerClone.Repository.DbInitializer
@@ -22,10 +23,10 @@ namespace MessengerClone.Repository.DbInitializer
                     _context.Database.Migrate();
                 }
 
-                if (!_roleManager.RoleExistsAsync(AppUserRoles.RoleAdmin).GetAwaiter().GetResult())
+                if (!_roleManager.RoleExistsAsync(enAppUserRoles.Admin.ToString()).GetAwaiter().GetResult())
                 {
-                    _roleManager.CreateAsync(new ApplicationRole() { Name = AppUserRoles.RoleAdmin }).GetAwaiter().GetResult();
-                    _roleManager.CreateAsync(new ApplicationRole() { Name = AppUserRoles.RoleMember }).GetAwaiter().GetResult();
+                    _roleManager.CreateAsync(new ApplicationRole() { Name = enAppUserRoles.Admin.ToString() }).GetAwaiter().GetResult();
+                    _roleManager.CreateAsync(new ApplicationRole() { Name = enAppUserRoles.Member.ToString() }).GetAwaiter().GetResult();
                 }
 
                 if (!_context.ApplicationUsers.Any())
@@ -42,7 +43,7 @@ namespace MessengerClone.Repository.DbInitializer
 
                     if (result.Succeeded)
                     {
-                        _userManager.AddToRoleAsync(user, AppUserRoles.RoleAdmin).GetAwaiter().GetResult();
+                        _userManager.AddToRoleAsync(user, enAppUserRoles.Admin.ToString()).GetAwaiter().GetResult();
 
                         // Email Confirmed
                         var codeToConfirm = _userManager.GenerateEmailConfirmationTokenAsync(user).GetAwaiter().GetResult();

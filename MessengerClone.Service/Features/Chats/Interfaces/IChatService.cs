@@ -1,6 +1,7 @@
 ﻿using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.Chats.DTOs;
+using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using System.Linq.Expressions;
 
@@ -20,7 +21,8 @@ namespace MessengerClone.Service.Features.Chats.Interfaces
         Task<Result<GroupChatMetadataDto>> ResetGroupChatImageAsync(int chatId, int currentUserId, ResetGroupChatImageDto dto, CancellationToken cancellationToken);
         Task<Result<GroupChatMetadataDto>> DeletetGroupChatImageAsync(int chatId,int currentUserId, CancellationToken cancellationToken);
         Task<Result<GroupChatMetadataDto>> UpdateGroupChatDescriptionAsync(int chatId, int currentUserId, UpdateGroupChatDescriptionDto dto, CancellationToken cancellationToken);
-        Task<Result> DeleteAsync(int chatId, int currentUserId, CancellationToken cancellationToken);
+        Task<Result> UpdateGroupLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken);
+        Task<Result> DeleteGroupChatAsync(int chatId, int currentUserId, CancellationToken cancellationToken);
 
 
     }

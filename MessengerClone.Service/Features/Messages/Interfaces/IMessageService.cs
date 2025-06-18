@@ -9,14 +9,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 {
     public interface IMessageService
     {
-        Task<Result<MessageDto>> AddMessageAsync(AddMessageDto dto, int senderId,int chatId);
-        Task<Result<LastMessageDto>> GetLastestMessageInChatAsync(int chatId, int currentUserId);
-        Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int userId, int? page, int? size,string? strFilter = null, Expression<Func<Message, bool>>? filter = null);
-        Task<Result<MessageDto>> GetMessageByIdForUserAsync(int Id, int currentUserId);
-        Task<Result<MessageDto>> PinMessageAsync(int Id, int currentUserId);
-        Task<Result<MessageDto>> UnPinMessageAsync(int Id, int currentUserId);
-        Task<Result<MessageDto>> DeleteMessageAsync(int Id, int currentUserId);
-        Task<Result<MessageDto>> UndoDeleteMessageAsync(int Id, int currentUserId);
+        Task<Result<MessageDto>> AddMessageAsync(AddMessageDto dto, int senderId,int chatId, CancellationToken cancellationToken);
+        Task<Result<LastMessageDto>> GetLatestMessageInChatAsync(int chatId, int currentUserId, CancellationToken cancellationToken);
+        Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int userId, CancellationToken cancellationToken, int? page, int? size,string? strFilter = null, Expression<Func<Message, bool>>? filter = null);
+        Task<Result<MessageDto>> GetMessageByIdForUserAsync(int Id, int currentUserId, CancellationToken cancellationToken);
+        Task<Result<MessageDto>> PinMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken);
+        Task<Result<MessageDto>> UnPinMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken);
+        Task<Result<MessageDto>> DeleteMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken);
+        Task<Result<MessageDto>> UndoDeleteMessageAsync(int Id, int chatId, int currentUserId, CancellationToken cancellationToken);
     
     }
 }

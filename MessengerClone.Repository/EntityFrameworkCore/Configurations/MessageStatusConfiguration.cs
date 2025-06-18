@@ -9,32 +9,47 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<MessageStatus> builder)
         {
-            builder.HasKey(mrr => new { mrr.UserId, mrr.MessageId });
+            builder.HasKey(ms => new { ms.MessageId, ms.UserId, ms.ChatId });
 
-            builder.Property(mrr => mrr.Status)
+            builder.Property(ms => ms.Status)
                    .HasConversion<string>()
                    .HasDefaultValue(enMessageStatus.Sent);
 
-            builder.Property(mrr => mrr.CreatedAt)
+            builder.Property(ms => ms.CreatedAt)
              .IsRequired();
 
-            builder.Property(mrr => mrr.DeliveredAt)
+            builder.Property(ms => ms.DeliveredAt)
             .IsRequired(false); 
 
-            builder.Property(mrr => mrr.ReadAt)
+            builder.Property(ms => ms.ReadAt)
+             .IsRequired(false);
+
+            builder.Property(c => c.DateDeleted)
              .IsRequired(false);
 
             builder
-                .HasOne(mrr => mrr.User)
-                .WithMany()
-                .HasForeignKey(mrr => mrr.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(ms => ms.Message)
+                .WithMany(m => m.MessageStatuses)
+                .HasForeignKey(ms => ms.MessageId)
+                .OnDelete(DeleteBehavior.Cascade); 
+            
+            builder
+                .HasOne(mr => mr.Member)
+                .WithMany(cm => cm.MessageStatuses)
+                .HasForeignKey(x => new { x.UserId, x.ChatId })
+                .HasPrincipalKey(cm => new { cm.UserId, cm.ChatId })
+                .OnDelete(DeleteBehavior.Restrict);
+
 
             builder
-                .HasOne(mrr => mrr.Message)
-                .WithMany(m => m.MessageInfo)
-                .HasForeignKey(mrr => mrr.MessageId)
-                .OnDelete(DeleteBehavior.NoAction);
+            .HasOne(x => x.Deleter)
+            .WithMany()
+            .HasForeignKey(x => x.DeletedBy)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+
+            builder.HasIndex(ms => new { ms.UserId, ms.ChatId });
 
             builder.ToTable("MessageStatuses");
         }

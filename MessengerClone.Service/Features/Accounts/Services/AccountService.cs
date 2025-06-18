@@ -167,7 +167,7 @@ namespace MessengerClone.Service.Features.Account.Services
 
                 var roles = await _userManager.GetRolesAsync(user);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                     return Result.Failure("Admin accounts cannot be deactivated.");
 
                 if (!user.IsActive)
@@ -204,7 +204,7 @@ namespace MessengerClone.Service.Features.Account.Services
 
                 var roles = await _userManager.GetRolesAsync(user);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                     return Result.Failure("Admin accounts cannot be reactivated.");
 
                 if (user.IsActive)

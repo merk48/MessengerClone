@@ -109,6 +109,64 @@ namespace MessengerClone.Service.Features.Users.Services
             }
         }
 
+        public async Task<Result<bool>> IsLockedOutAsync(ApplicationUser user, CancellationToken cancellationToken)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Attempted to fetch non-existent user from {Method}", nameof(IsLockedOutAsync));
+                    return Result<bool>.Failure("Invalid user provided!");
+                }
+
+                var isLocked = await _userManager.IsLockedOutAsync(user);
+
+                return Result<bool>.Success(isLocked);
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogError(ex, "Request was canceled for user {UserId} in {Method}", user.Id, nameof(IsLockedOutAsync));
+                return Result<bool>.Failure("Failed to retrieve user roles from the database!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in fetching for user {UserId}", user.Id);
+                return Result<bool>.Failure("Failed to retrieve user roles from the database!");
+            }
+        }
+
+        public async Task<Result<List<string>>> GetRolesAsync(ApplicationUser user, CancellationToken cancellationToken)
+        {
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (user == null)
+                {
+                    _logger.LogWarning("Attempted to fetch non-existent user from {Method}", nameof(GetRolesAsync));
+                    return Result<List<string>>.Failure("Invalid user provided!");
+                }
+
+                List<string> roles = (await _userManager.GetRolesAsync(user)).ToList();
+
+                return roles != null
+                    ? Result<List<string>>.Success(roles)
+                    : Result<List<string>>.Failure("Failed to retrieve user roles from the database!");
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogError(ex, "Request was canceled for user {UserId} in {Method}", user.Id, nameof(GetRolesAsync));
+                return Result<List<string>>.Failure("Failed to retrieve user roles from the database!");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in fetching for user {UserId}", user.Id);
+                return Result<List<string>>.Failure("Failed to retrieve user roles from the database!");
+            }
+        }
+
         public async Task<Result<UserDto>> LockUserAsync(int Id, CancellationToken cancellationToken)
         {
             try
@@ -125,7 +183,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to lock an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be locked out.");
@@ -187,7 +245,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to unlock an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be unlocked out.");
@@ -441,7 +499,7 @@ namespace MessengerClone.Service.Features.Users.Services
 
                 var roles = await _userManager.GetRolesAsync(entity);
 
-                if (roles.Contains(AppUserRoles.RoleAdmin))
+                if (roles.Contains(enAppUserRoles.Admin.ToString()))
                 {
                     _logger.LogWarning("Attempted to delete an admin account user {UserId}", Id);
                     return Result<UserDto>.Failure("Admin accounts cannot be deleted.");

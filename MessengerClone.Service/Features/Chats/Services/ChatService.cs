@@ -6,6 +6,7 @@ using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.ChatMembers.DTOs;
 using MessengerClone.Service.Features.Chats.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
+using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.Files.Helpers;
 using MessengerClone.Service.Features.Files.Interfaces;
 using MessengerClone.Service.Features.General.DTOs;
@@ -14,6 +15,7 @@ using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.Messages.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.DTOs;
+using MessengerClone.Service.Features.Users.Interfaces;
 using MessengerClone.Service.Features.Users.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -23,7 +25,7 @@ using System.Linq.Expressions;
 namespace MessengerClone.Service.Features.Chats.Services
 {
     public class ChatService(IUnitOfWork _unitOfWork, IMapper _mapper,IChatMemeberService _memeberService,
-            IMessageStatusService _messageStatusService, IFileService _FileService, ILogger<ChatService> _logger)
+            IMessageStatusService _messageStatusService, IFileService _FileService, IUserService _userService, ILogger<ChatService> _logger)
         : IChatService
     {
       
@@ -68,7 +70,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 foreach (var chatDto in chatDtos)
                 {
-                    var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesForUserCountAsync(chatDto.Id, userId);
+                    var UnreadCountResult = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chatDto.Id, userId);
 
                     if (UnreadCountResult.Succeeded)
                         chatDto.UnreadCount = UnreadCountResult.Data;
@@ -144,12 +146,15 @@ namespace MessengerClone.Service.Features.Chats.Services
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                
+
+
                 var chat = await _unitOfWork.Repository<Chat>()
-                    .Table
-                    .Include(c => c.ChatMembers)
-                        .ThenInclude(cm => cm.User)
-                    .FirstOrDefaultAsync(c => c.Id == chatId);
+                    .GetAsync(x => x.Id == chatId, 
+                    include: x => x
+                    .Include(x => x.LastMessage)
+                    .Include(x => x.ChatMembers)
+                        .ThenInclude(cm => cm.User));
+
 
                 if (chat == null)
                 {
@@ -158,7 +163,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                 }
 
                 ChatMetadataDto chatDto = await MapperHelper.BuildChatMetadataDto(chat, currentUserId, _messageStatusService, _mapper);
-              
+
                 return Result<ChatMetadataDto>.Success(chatDto);
 
             }
@@ -202,7 +207,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     .GetAsync(x =>
                     x.ChatMembers!.Any(m => m.UserId == dto.OtherMemberId)
                     && x.ChatMembers!.Any(m => m.UserId == currentUserId)
-                    && x.ChatMembers!.Count == 2);
+                    && x.Type == enChatType.Direct);
 
 
                 // Already there an chat between them
@@ -215,6 +220,8 @@ namespace MessengerClone.Service.Features.Chats.Services
                         if (hasOwnTr) await _unitOfWork.RollbackAsync();
                         return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
                     }
+                    var existingDirectDto2 = (await MapperHelper.BuildChatMetadataDto(existing, currentUserId, _messageStatusService, _mapper)) as DirectChatMetadataDto;
+
 
                     if (!(await _unitOfWork.CommitAsync()).Succeeded)
                     {
@@ -222,13 +229,25 @@ namespace MessengerClone.Service.Features.Chats.Services
                         return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
                     }
 
-                   _logger.LogInformation("Direct Chat {Id} has retrieved successfully", existingDirectDto.Id);
+                    _logger.LogInformation("Direct Chat {Id} has retrieved successfully", existingDirectDto.Id);
                     return Result<DirectChatMetadataDto>.Success(existingDirectDto);
                 }
 
-                DirectChat directEntity = _mapper.Map<DirectChat>(dto);
-               
-                await _unitOfWork.Repository<Chat>().AddAsync(directEntity);
+                var otherUserResult = await _userService.GetUserByIdAsync(dto.OtherMemberId,cancellationToken);
+                if (!otherUserResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<DirectChatMetadataDto>.Failure("Failed to save the chat details.");
+                }
+
+                DirectChat directEntity = _mapper.Map<DirectChat>(dto, opt =>
+                {
+                    opt.Items["Title"] = otherUserResult.Data!.Username;
+                });
+
+                directEntity.LastMessage = new();
+
+                 await _unitOfWork.Repository<Chat>().AddAsync(directEntity);
 
                 var saveChatResult = await _unitOfWork.SaveChangesAsync();
                 if (!saveChatResult.Succeeded)
@@ -239,42 +258,45 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 List<AddChatMemberDto> members = new() 
                 {
-                    new AddChatMemberDto { ChatId = directEntity.Id, UserId = currentUserId},
-                    new AddChatMemberDto { ChatId = directEntity.Id, UserId = dto.OtherMemberId } 
+                    new AddChatMemberDto { UserId = currentUserId,ChatRole = enChatRole.Participant},
+                    new AddChatMemberDto { UserId = dto.OtherMemberId,ChatRole = enChatRole.Participant } 
                 };
 
 
-                var addDirectChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members);
+                var addDirectChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members, directEntity.Id);
                 if (!addDirectChatMembersResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
                     return Result<DirectChatMetadataDto>.Failure("Failed to save the chat members.");
                 }
 
-
-                var getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
-
-                if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                Result<ChatMetadataDto> getDirectDtoResult = new();
+                if (hasOwnTr)
                 {
-                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
-                }
+                    var commitTrResult = await _unitOfWork.CommitAsync();
+                    if (!commitTrResult.Succeeded)
+                    {
+                        await _unitOfWork.RollbackAsync();
+                        return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
+                    }
 
+                    _logger.LogInformation("New Direct Chat {Id} has added successfully", directEntity.Id);
 
-                if (!hasOwnTr)
+                    getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
+                    if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                        return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
+                    
                     return Result<DirectChatMetadataDto>.Success(directDto);
 
-                var commitTrResult = await _unitOfWork.CommitAsync();
-                if (!commitTrResult.Succeeded)
-                {
-                    await _unitOfWork.RollbackAsync();
-                    return Result<DirectChatMetadataDto>.Failure("Failed to commit transaction.");
                 }
+                else
+                {
+                    getDirectDtoResult = await GetChatMetadataById(directEntity.Id, currentUserId, cancellationToken);
+                    if (!getDirectDtoResult.Succeeded || getDirectDtoResult.Data is not DirectChatMetadataDto directDto)
+                        return Result<DirectChatMetadataDto>.Failure("Failed to load saved group chat metadata.");
 
-                _logger.LogInformation("New Direct Chat {Id} has added successfully", directEntity.Id);
-
-                return Result<DirectChatMetadataDto>.Success(directDto);
-
+                    return Result<DirectChatMetadataDto>.Success(directDto);
+                }
             }
             catch (OperationCanceledException ex)
             {
@@ -311,6 +333,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
 
                 GroupChat groupEntity = _mapper.Map<GroupChat>(dto);
+                groupEntity.LastMessage = new();
 
                 await _unitOfWork.Repository<GroupChat>().AddAsync(groupEntity);
 
@@ -324,14 +347,14 @@ namespace MessengerClone.Service.Features.Chats.Services
                 List<AddChatMemberDto> members = new();
 
                 if (!dto.MemberIds.Contains(currentUserId))
-                    members.Add(new AddChatMemberDto { ChatId = groupEntity.Id, UserId = currentUserId });
+                    members.Add(new AddChatMemberDto { UserId = currentUserId ,ChatRole = enChatRole.GroupOwner });
 
                 foreach (int memberId in dto.MemberIds)
                 {
-                    members.Add(new AddChatMemberDto { ChatId = groupEntity.Id, UserId = memberId });
+                    members.Add(new AddChatMemberDto { UserId = memberId, ChatRole = enChatRole.GroupMember });
                 }
 
-                var addGroupChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members);
+                var addGroupChatMembersResult = await _memeberService.AddRangeOfMembersToChatAsync(members, groupEntity.Id);
                 if (!addGroupChatMembersResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
@@ -488,7 +511,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be renamed");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to rename chat {chatId} that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be renamed");
@@ -540,7 +563,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be reset its cover image");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to reset chat {chatId} cover image that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be reset its cover imag");
@@ -620,7 +643,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be delete its cover image");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to delete chat {chatId} cover image that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be delete its cover imag");
@@ -667,6 +690,47 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
 }
 
+        public async Task<Result> UpdateGroupLastMessageAsync(int chatId, int currentUserId, MessageDto msgDto, CancellationToken cancellationToken)
+        {
+             try 
+             {
+                var entity = await _unitOfWork.Repository<Chat>().GetAsync(x => x.Id == chatId,
+                                include: x => x.Include(x => x.ChatMembers));
+
+                if (entity == null)
+                {
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(UpdateGroupLastMessageAsync));
+                    return Result.Failure("Group Chat not found");
+                }
+
+                entity.LastMessage = _mapper.Map<LastMessageSnapshot>(msgDto);
+
+                await _unitOfWork.Repository<Chat>().UpdateAsync(entity);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if (!saveReult.Succeeded)
+                    return Result.Failure("Failed to update chat last message");
+
+
+                _logger.LogInformation("Chat {Id} last message updated successfully", entity.Id);
+
+                return Result.Success();
+
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(UpdateGroupLastMessageAsync));
+                return Result.Failure("Request was canceled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in {Method} ", nameof(UpdateGroupLastMessageAsync));
+                return Result.Failure("Failed update chat description"); ;
+            }
+           
+        }
+
         public async Task<Result<GroupChatMetadataDto>> UpdateGroupChatDescriptionAsync(int chatId, int currentUserId, UpdateGroupChatDescriptionDto dto, CancellationToken cancellationToken)
         {
             try
@@ -685,7 +749,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be update its description");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupAdmin)
                 {
                     _logger.LogWarning("Attempted to update chat {chatId} description that user {UserId} is not a admin of this caht!", chatId, currentUserId);
                     return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, can't be update its description");
@@ -703,7 +767,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
 
                 var chatDto = (await MapperHelper.BuildChatMetadataDto(entity, currentUserId, _messageStatusService, _mapper)) as GroupChatMetadataDto;
-               
+
                 _logger.LogInformation("Chat {Id} description updated successfully", entity.Id);
 
                 return Result<GroupChatMetadataDto>.Success(chatDto);
@@ -721,7 +785,8 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
         }
 
-        public async Task<Result> DeleteAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
+
+        public async Task<Result> DeleteGroupChatAsync(int chatId, int currentUserId, CancellationToken cancellationToken)
         {
             string imageUrl = "";
             try
@@ -731,7 +796,7 @@ namespace MessengerClone.Service.Features.Chats.Services
 
                 if (entity == null)
                 {
-                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(DeleteAsync));
+                    _logger.LogWarning("Chat {Id} not found in {Method}", chatId, nameof(DeleteGroupChatAsync));
                     return Result<GroupChatMetadataDto>.Failure("Group Chat not found");
                 }
 
@@ -741,10 +806,10 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<GroupChatMetadataDto>.Failure("User is not a member in this chat!, can't be deleted");
                 }
 
-                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.ChatAdmin)
+                if (entity.ChatMembers.FirstOrDefault(x => x.UserId == currentUserId)!.ChatRole != enChatRole.GroupOwner)
                 {
-                    _logger.LogWarning("Attempted to delete chat {chatId} that user {UserId} is not a admin of this caht!", chatId, currentUserId);
-                    return Result<GroupChatMetadataDto>.Failure("User is not an admin of this chat!, deleted");
+                    _logger.LogWarning("Attempted to delete chat {chatId} that user {UserId} is not the owner of this caht!", chatId, currentUserId);
+                    return Result<GroupChatMetadataDto>.Failure("User is not the owner of this chat!, can't be deleted");
                 }
 
 
@@ -772,12 +837,12 @@ namespace MessengerClone.Service.Features.Chats.Services
             }
             catch (OperationCanceledException ex)
             {
-                _logger.LogError(ex, "Request was canceled in {Method}", nameof(DeleteAsync));
+                _logger.LogError(ex, "Request was canceled in {Method}", nameof(DeleteGroupChatAsync));
                 return Result<GroupChatMetadataDto>.Failure("Request was canceled");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in {Method} ", nameof(DeleteAsync));
+                _logger.LogError(ex, "Error in {Method} ", nameof(DeleteGroupChatAsync));
                 return Result.Failure("Failed to delete the chat from the database"); ;
             }
         }

@@ -14,7 +14,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
     public class MediaAttachmentService(IUnitOfWork _unitOfWork, IMapper _mapper, IFileService _FileService) 
         : IMediaAttachmentService
     {
-        public async Task<Result<AttachmentDto>> AddAsync(int messageId,AddAttachmentDto dto)
+        public async Task<Result<MediaAttachmentDto>> AddAsync(int messageId,AddAttachmentDto dto)
         {
             var hasOwnTr = false;
 
@@ -27,7 +27,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
                 else if (startTrResult.FailureType == enFailureType.TransactionInProgress)
                     hasOwnTr = false;
                 else
-                    return Result<AttachmentDto>.Failure("Falied to start a transaction.");
+                    return Result<MediaAttachmentDto>.Failure("Falied to start a transaction.");
 
 
                 var result = await _FileService.SaveAsync(dto.Attachment ,
@@ -38,7 +38,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
                 if(!result.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<AttachmentDto>.Failure("Failed to save message's media attachment");
+                    return Result<MediaAttachmentDto>.Failure("Failed to save message's media attachment");
                 }
 
                 MediaAttachment entity = _mapper.Map<MediaAttachment>(dto,opt =>
@@ -53,18 +53,18 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
                 if (!saveResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<AttachmentDto>.Failure("Failed to save message's media attachment to the database");
+                    return Result<MediaAttachmentDto>.Failure("Failed to save message's media attachment to the database");
                 }
 
-                AttachmentDto attachmentDto = _mapper.Map<AttachmentDto>(entity);
+                MediaAttachmentDto attachmentDto = _mapper.Map<MediaAttachmentDto>(entity);
 
-                return Result<AttachmentDto>.Success(attachmentDto);
+                return Result<MediaAttachmentDto>.Success(attachmentDto);
             }
             catch (Exception)
             {
                 // Log
                 if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                return Result<AttachmentDto>.Failure("Failed to save message's media attachment to the database");
+                return Result<MediaAttachmentDto>.Failure("Failed to save message's media attachment to the database");
             }
         }
 
@@ -91,7 +91,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
                 if (!result.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<AttachmentDto>.Failure("Failed to delete message's media attachment");
+                    return Result<MediaAttachmentDto>.Failure("Failed to delete message's media attachment");
                 }
 
 
@@ -100,7 +100,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
                 if (!saveResult.Succeeded)
                 {
                     if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                    return Result<AttachmentDto>.Failure("Failed to save message's media attachment to the database");
+                    return Result<MediaAttachmentDto>.Failure("Failed to save message's media attachment to the database");
                 }
 
 
@@ -110,7 +110,7 @@ namespace MessengerClone.Service.Features.MediaAttachments.Services
             {
                 // Log
                 if (hasOwnTr) await _unitOfWork.RollbackAsync();
-                return Result<AttachmentDto>.Failure("Failed to save message's media attachment to the database");
+                return Result<MediaAttachmentDto>.Failure("Failed to save message's media attachment to the database");
             }
         }
     }

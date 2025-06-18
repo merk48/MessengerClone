@@ -51,8 +51,7 @@ namespace MessengerClone.Service.Features.Chats.Profiles
             CreateMap<Chat, ChatMetadataDto>()
                  .ForMember(dest => dest.Members, opt => opt.MapFrom(src => src.ChatMembers))
                 .ForMember(dest => dest.LastMessage, opt => opt.MapFrom(src => src.LastMessage))
-                .ForMember(dest => dest.UnreadCount, opt => 
-                                                    opt.MapFrom((src, dest, destMember, context) => (int)context.Items["UnreadCount"]))
+                .ForMember(dest => dest.UnreadCount, opt => opt.MapFrom((src, dest, destMember, context) => (int)context.Items["UnreadCount"]))
              .Include<GroupChat, GroupChatMetadataDto>()
              .Include<DirectChat, DirectChatMetadataDto>();
             
@@ -69,7 +68,9 @@ namespace MessengerClone.Service.Features.Chats.Profiles
 
 
             CreateMap<AddDirectChatDto, DirectChat>()
-                   .ForMember(dest => dest.Type, opt => opt.MapFrom(_ => enChatType.Direct));
+                   .ForMember(dest => dest.Type, opt => opt.MapFrom(_ => enChatType.Direct))
+                   .ForMember(dest => dest.Title,
+                           opt => opt.MapFrom((src, dest, destMember, context) => (string)context.Items["Title"]));
 
             CreateMap<AddGroupChatDto, GroupChat>()
                 .ForMember(dest => dest.GroupCoverImageUrl, opt => opt.Ignore())

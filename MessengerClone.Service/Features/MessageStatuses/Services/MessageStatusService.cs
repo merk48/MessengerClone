@@ -7,27 +7,86 @@ using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.General.Extentions;
+using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
+using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
-using System.Linq;
+using System.Threading;
+using Twilio.TwiML.Messaging;
 
 namespace MessengerClone.Service.Features.MessageStatuses.Services
 {
-    public class MessageStatusService(IUnitOfWork _unitOfWork, IMapper _mapper) : IMessageStatusService
+    public class MessageStatusService(IUnitOfWork _unitOfWork, IMapper _mapper, IUserService _userService) : IMessageStatusService
     {
 
-        public async Task<Result> MarkAsDeliveredAsync(int messageId, int userId)
+        public async Task<Result<MessageStatusDto>> AddMessageStatusAsync(AddMessageStatusDto dto)
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.MessageId == messageId && x.UserId == userId);
+                var entity = _mapper.Map<MessageStatus>(dto);
+
+                await _unitOfWork.Repository<MessageStatus>().AddAsync(entity);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if(!saveReult.Succeeded)
+                    return Result<MessageStatusDto>.Failure("Failed to add message status to database");
+
+                var messageStatuesDto = _mapper.Map<MessageStatusDto>(entity);
+
+                return Result<MessageStatusDto>.Success(messageStatuesDto);
+
+            }
+            catch (Exception)
+            {
+                // Log.
+                return Result<MessageStatusDto>.Failure("Failed to add message status to database");
+            }
+        }
+
+        public async Task<Result<DataResult<MessageStatusDto>>> AddMessageInfoAsync(IEnumerable<AddMessageStatusDto> dto)
+        {
+            try
+            {
+                var entities = _mapper.Map<List<MessageStatus>>(dto);
+
+                await _unitOfWork.Repository<MessageStatus>().AddRangeAsync(entities);
+
+                var saveReult = await _unitOfWork.SaveChangesAsync();
+
+                if (!saveReult.Succeeded)
+                    return Result<DataResult<MessageStatusDto>>.Failure("Failed to add message info of statuses to database");
+
+                var messageStatuesDtos = _mapper.Map<List<MessageStatusDto>>(entities);
+
+                return Result<DataResult<MessageStatusDto>>.Success(new DataResult<MessageStatusDto>
+                {
+                    Data = messageStatuesDtos ?? Enumerable.Empty<MessageStatusDto>(),
+                    TotalRecordsCount = messageStatuesDtos!.Count
+                });
+
+            }
+            catch (Exception)
+            {
+                // Log.
+                return Result<DataResult<MessageStatusDto>>.Failure("Failed to add message info of statuses to database");
+            }
+        }
+
+        public async Task<Result> MarkAsDeliveredAsync(int chatId, int messageId, int userId)
+        {
+            try
+            {
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.UserId == userId);
 
                 if (status == null)
                     return Result.Failure("Status not found!");
 
+                status.Status = enMessageStatus.Delivered;
                 status.DeliveredAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<MessageStatus>().UpdateAsync(status);
 
                 var saveReult =  await _unitOfWork.SaveChangesAsync();
 
@@ -42,16 +101,19 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result> MarkAsReadAsync(int messageId, int userId)
+        public async Task<Result> MarkAsReadAsync(int chatId, int messageId, int userId)
         {
             try
             {
-                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.MessageId == messageId && x.UserId == userId);
+                var status = await _unitOfWork.Repository<MessageStatus>().GetAsync(x => x.Message.ChatId == chatId && x.MessageId == messageId && x.UserId == userId);
 
                 if (status == null) 
                     return Result.Failure("Status not found!");
 
+                status.Status = enMessageStatus.Read;
                 status.ReadAt = DateTime.UtcNow;
+
+                await _unitOfWork.Repository<MessageStatus>().UpdateAsync(status);
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
 
@@ -67,13 +129,16 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int messageId)
+        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int chatId, int messageId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+               
                 var query = _unitOfWork.Repository<MessageStatus>().Table
                         .AsNoTracking()
-                        .Where(x => x.MessageId == messageId).AsQueryable();
+                        .Where(x => x.MessageId == messageId && x.UserId != currentUserId)
+                        .AsQueryable();
 
                 var messageStatuseDtos = await query.ProjectTo<MessageStatusDto>(_mapper.ConfigurationProvider).ToListAsync();
 
@@ -90,7 +155,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<int>> GetChatUnreadMessagesForUserCountAsync(int chatId, int currentUserId)
+        public async Task<Result<int>> GetChatUnreadMessagesCountForUserAsync(int chatId, int currentUserId)
         {
             try
             {
@@ -107,10 +172,12 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<DataResult<MessageDto>>> GetChatUnreadMessagesForUserAsync(int chatId, int currentUserId, int? page = null, int? size = null)
+        public async Task<Result<DataResult<MessageDto>>> GetChatUnreadMessagesForUserAsync(int chatId, int currentUserId, CancellationToken cancellationToken, int? page = null, int? size = null)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 var query = _unitOfWork.Repository<MessageStatus>().Table
                      .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
                      .Include(x => x.Message)
@@ -118,7 +185,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                      .Distinct()
                      .Include(x => x.Sender)
                      .Include(x => x.Attachment)
-                     .Include(x => x.MessageInfo)
+                     .Include(m => m.MessageStatuses.Where(ms => ms.UserId != currentUserId))
                      .Include(x => x.MessageReactions)
                      .OrderByDescending(x => x.CreatedAt)
                      .AsQueryable();
@@ -129,17 +196,12 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value);
 
-                var messages = await query.ToListAsync();
+                var messages = await query.ToListAsync(cancellationToken);
 
-                List<MessageDto> messageDtos = new();
-
-                foreach (var msg in messages)
+                var messageDtos = _mapper.Map<List<MessageDto>>(messages, opt =>
                 {
-                    var dto = _mapper.Map<MessageDto>(msg, opts => {
-                        opts.Items["JoinedAt"] = msg.CreatedAt;
-                    });
-                    messageDtos.Add(dto);
-                }
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 if (page.HasValue && size.HasValue)
                 {

@@ -32,6 +32,10 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.Property(m => m.SenderId)
                .IsRequired();
 
+            // user 
+            // chat => members + messages
+            // messages => media + reaction + statuses
+
             builder
                 .HasOne(m => m.Chat)
                 .WithMany(c => c.Messages)
@@ -41,19 +45,26 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder
                 .HasOne(m => m.Sender)
                 .WithMany()
-                .HasForeignKey(m => m.SenderId)
+                .HasForeignKey(m => new { m.SenderId, m.ChatId })
+                .HasPrincipalKey(cm => new { cm.UserId, cm.ChatId })
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder
-              .HasOne(m => m.PinnedByUser)
+              .HasOne(m => m.PinnedByMember)
               .WithMany()
-              .HasForeignKey(m => m.PinnedById)
+              .HasForeignKey(m => new { m.PinnedBy, m.ChatId })
               .IsRequired(false)
-              .OnDelete(DeleteBehavior.Cascade);
+              .OnDelete(DeleteBehavior.Restrict);
+
+            builder
+               .HasOne(x => x.Deleter)
+               .WithMany()
+               .HasForeignKey(x => x.DeletedBy)
+               .IsRequired(false)
+               .OnDelete(DeleteBehavior.Restrict);
+
 
             builder.HasIndex(m => m.CreatedAt);
-
-            builder.HasQueryFilter(m => !m.IsDeleted);
 
             builder.ToTable("Messages");
         }
