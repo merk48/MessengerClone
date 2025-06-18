@@ -41,6 +41,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
                 }
             }
 
+            // Cascade soft delete: Conversation → Members
             // Cascade soft delete: Conversation → Messages
             var convEntries = context.ChangeTracker
                 .Entries<Chat>()
@@ -69,6 +70,8 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
             }
 
             // Cascade soft delete: Message → MediaAttachment (for standalone deleted messages)
+            // Cascade soft delete: Message → Statuses (for standalone deleted messages)
+            // Cascade soft delete: Message → Reactions (for standalone deleted messages)
             var messageEntries = context.ChangeTracker
                 .Entries<Message>()
                 .Where(e => e.Entity.IsDeleted && e.State == EntityState.Modified);

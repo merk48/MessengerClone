@@ -28,8 +28,8 @@ namespace MessengerClone.API.Controllers
                 var result = await _messageReactionService.GetAllMessageReactionsAsync(chatId, messageId, _userContext.UserId);
 
                 return result.Succeeded
-                    ? CreatedResponse(null!, result.Data!, "Message reaction added successfully.")
-                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "CREATION_ERROR", result.ToString());
+                    ? SuccessResponse(result.Data!, "Message reactions retrieved successfully.")
+                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "RETRIEVAL_ERROR", result.ToString());
             }
             catch (HttpRequestException ex)
             {
@@ -55,7 +55,7 @@ namespace MessengerClone.API.Controllers
                 var result = await _messageReactionService.AddReactToMessageAsync(chatId, messageId, _userContext.UserId, dto);
 
                 return result.Succeeded
-                    ? CreatedResponse(null!, result.Data!, "Message reaction added successfully.")
+                    ? CreatedResponse(null!,null!, result.Data!, "Message reaction added successfully.")
                     : StatusCodeResponse(StatusCodes.Status500InternalServerError, "CREATION_ERROR", result.ToString());
             }
             catch (HttpRequestException ex)

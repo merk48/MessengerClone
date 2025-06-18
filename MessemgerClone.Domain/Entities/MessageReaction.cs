@@ -6,7 +6,7 @@ namespace MessengerClone.Domain.Entities
     public class MessageReaction : ICreateAt
     {
         // Composite Key: MessageId + UserId + ChatId
-        public int? MessageId { get; set; }
+        public int MessageId { get; set; }
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public enMessageReactionType ReactionType { get; set; } 

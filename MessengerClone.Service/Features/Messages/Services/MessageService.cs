@@ -145,16 +145,20 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-               
+
                 Message? entity = await _unitOfWork.Repository<Message>()
-                    .GetAsync(x => x.Id == id && x.SenderId == currentUserId 
-                    ,include : x=> x.Include(x => x.Sender)
+                    .GetAsync(x => x.Id == id && x.SenderId == currentUserId
+                    , include: x => x.Include(x => x.Sender)
                                      .ThenInclude(x => x.User)
                                      .Include(x => x.Attachment)
                                      .Include(x => x.MessageStatuses)
                                         .ThenInclude(x => x.Member)
-                                     .Include(x => x.MessageReactions));
-               
+                                        .ThenInclude(x => x.User)
+                                     .Include(x => x.MessageReactions)
+                                        .ThenInclude(x => x.Member)
+                                        .ThenInclude(x => x.User));
+
+
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 

@@ -2,14 +2,10 @@
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Global;
-using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.MessageReactions.DTOs;
 using MessengerClone.Service.Features.MessageReactions.Interfaces;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using System.Threading;
 using AutoMapper.QueryableExtensions;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 using Microsoft.EntityFrameworkCore;
 
 namespace MessengerClone.Service.Features.MessageReactions.Services
@@ -21,7 +17,7 @@ namespace MessengerClone.Service.Features.MessageReactions.Services
             try
             {
                 var query = _unitOfWork.Repository<MessageReaction>()
-                    .Table.Where(x => x.ChatId == chatId && x.UserId == currentUserId && x.MessageId == messageId)
+                    .Table.Where(x => x.ChatId == chatId  && x.MessageId == messageId)
                     .AsQueryable();
 
                 var totalCount = await query.CountAsync();
@@ -39,29 +35,74 @@ namespace MessengerClone.Service.Features.MessageReactions.Services
                 // Log.
                 return Result<DataResult<MessageReactionDto>>.Failure("Failed to retrieve message reactions from the database");
             }
-        } 
-        
+        }
+
+        private async Task<MessageReactionDto> GetMessageAsync(int chatId, int messageId, int currentUserId)
+        {
+            try
+            {
+                var entity = await _unitOfWork.Repository<MessageReaction>()
+                    .GetAsync(x => x.ChatId == chatId && x.UserId == currentUserId && x.MessageId == messageId
+                    , include: x => x.Include(x => x.Member).ThenInclude(x => x.User));
+
+
+                MessageReactionDto dto = _mapper.Map<MessageReactionDto>(entity);
+
+                return dto;
+            }
+            catch (Exception)
+            {
+                // threw error
+                return null!;
+            }
+        }
+
+        private async Task<MessageReactionDto> GetMessageAsync(MessageReaction reaction)
+        {
+            return await GetMessageAsync(reaction.ChatId, reaction.MessageId, reaction.UserId);
+        }
+
         public async Task<Result<MessageReactionDto>> AddReactToMessageAsync(int chatId, int messageId, int currentUserId, AddMessageReactionDto dto)
         {
             try
             {
-                var entity = _mapper.Map<MessageReaction>(dto, opt =>
-                {
-                    opt.Items["ChatId"] = chatId;
-                    opt.Items["MessageId"] = messageId;
-                    opt.Items["CurrentUserId"] = currentUserId;
-                });
+                MessageReaction? entity = new();
 
-                await _unitOfWork.Repository<MessageReaction>().AddAsync(entity);
+                entity = await _unitOfWork.Repository<MessageReaction>()
+                    .GetAsync(x => x.ChatId == chatId && x.UserId == currentUserId && x.MessageId == messageId
+                    ,include: x => x.Include(x => x.Member).ThenInclude(x => x.User));
+
+                bool isExsist = entity is not null;
+
+
+                if (isExsist)
+                    await _unitOfWork.Repository<MessageReaction>().UpdateAsync(entity!);
+                else
+                {
+                    entity = _mapper.Map<MessageReaction>(dto, opt =>
+                    {
+                        opt.Items["ChatId"] = chatId;
+                        opt.Items["MessageId"] = messageId;
+                        opt.Items["CurrentUserId"] = currentUserId;
+                    });
+
+                    await _unitOfWork.Repository<MessageReaction>().AddAsync(entity);
+                }
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
+                if (!saveReult.Succeeded)
+                    return Result<MessageReactionDto>.Failure("Failed to add message reaction to the database");
 
-                MessageReactionDto reactionDto = _mapper.Map<MessageReactionDto>(entity);
 
-                return saveReult.Succeeded
-                    ? Result<MessageReactionDto>.Success(reactionDto)
-                    : Result<MessageReactionDto>.Failure("Failed to add message reaction to the database");
+                MessageReactionDto reactionDto = new();
 
+                if (isExsist)
+                    reactionDto = _mapper.Map<MessageReactionDto>(entity);
+                else
+                    reactionDto = await GetMessageAsync(entity!);
+
+
+                return Result<MessageReactionDto>.Success(reactionDto);
             }
             catch (Exception)
             {
@@ -83,9 +124,9 @@ namespace MessengerClone.Service.Features.MessageReactions.Services
                 await _unitOfWork.Repository<MessageReaction>().DeleteAsync(entity);
 
                 var saveReult = await _unitOfWork.SaveChangesAsync();
-
+              
                 return saveReult.Succeeded
-                    ? Result<MessageReactionDto>.Success()
+                    ? Result.Success()
                     : Result<MessageReactionDto>.Failure("Failed to delete message reaction from the database");
 
             }

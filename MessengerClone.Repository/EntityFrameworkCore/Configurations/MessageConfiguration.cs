@@ -36,14 +36,14 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
                 .HasOne(m => m.Chat)
                 .WithMany(c => c.Messages)
                 .HasForeignKey(m => m.ChatId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder
                 .HasOne(m => m.Sender)
                 .WithMany()
                 .HasForeignKey(m => new { m.SenderId, m.ChatId })
                 .HasPrincipalKey(cm => new { cm.UserId, cm.ChatId })
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder
               .HasOne(m => m.PinnedByMember)
