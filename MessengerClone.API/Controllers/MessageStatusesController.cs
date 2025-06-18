@@ -39,60 +39,6 @@ namespace MessengerClone.API.Controllers
         }
 
 
-        [HttpGet("unread", Name = "GetChatUnreadMessagesForUser")]
-        public async Task<IActionResult> GetChatUnreadMessagesForUserAsync([FromRoute] int chatId, CancellationToken cancellationToken, [FromQuery] int? page = null, [FromQuery] int? size = null)
-        {
-            try
-            {
-                if (_userContext.UserId <= 0)
-                    return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
-
-                var result = await _messageStatusService.GetChatUnreadMessagesForUserAsync(chatId, _userContext.UserId, cancellationToken, page, size);
-
-                return result.Succeeded
-                    ? SuccessResponse(result.Data, $"Chat unread messages retrieved successfully.")
-                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "RETRIEVAL_ERROR", result.ToString());
-            }
-            catch (HttpRequestException ex)
-            {
-                //Log.Error(ex.Message);
-                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Service error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                //Log.Error(ex.Message);
-                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Unexpected error: {ex.Message}");
-            }
-        }
-
-
-        [HttpGet("unread-count", Name = "GetChatUnreadMessagesCountForUser")]
-        public async Task<IActionResult> GetChatUnreadMessagesCountForUserAsync([FromRoute] int chatId)
-        {
-            try
-            {
-                if (_userContext.UserId <= 0)
-                    return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first.");
-
-                var result = await _messageStatusService.GetChatUnreadMessagesCountForUserAsync(chatId, _userContext.UserId);
-
-                return result.Succeeded
-                    ? SuccessResponse(result.Data, $"Chat unread messages number retrieved successfully.")
-                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "RETRIEVAL_ERROR", result.ToString());
-            }
-            catch (HttpRequestException ex)
-            {
-                //Log.Error(ex.Message);
-                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Service error: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                //Log.Error(ex.Message);
-                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Unexpected error: {ex.Message}");
-            }
-        }
-
-
         [HttpPost("acknowledge", Name = "UpdateMessageStatus")]
         public async Task<IActionResult> Acknowledge([FromRoute] int chatId, [FromRoute] int messageId, [FromBody] MessageAcknowledgeDto dto)
         {
