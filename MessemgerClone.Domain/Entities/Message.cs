@@ -34,11 +34,31 @@ namespace MessengerClone.Domain.Entities
             DateDeleted = null;
             DeletedBy = null;
 
-            if(Attachment is not null)
+            if (Attachment is not null)
             {
                 Attachment.IsDeleted = false;
                 Attachment.DateDeleted = null;
                 Attachment.Deleter = null;
+            }
+
+            if (MessageStatuses is not null)
+            {
+                foreach (var status in MessageStatuses)
+                {
+                    status.IsDeleted = false;
+                    status.DateDeleted = null;
+                    status.Deleter = null;
+                }
+            }
+
+            if (MessageReactions is not null)
+            {
+                foreach (var reaction in MessageReactions)
+                {
+                    reaction.IsDeleted = false;
+                    reaction.DateDeleted = null;
+                    reaction.Deleter = null;
+                }
             }
         }
     }

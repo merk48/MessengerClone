@@ -16,6 +16,9 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.Property(cp => cp.CreatedAt)
              .IsRequired();
 
+            builder.Property(c => c.DateDeleted)
+             .IsRequired(false);
+
             builder.HasOne(cp => cp.User)
                 .WithMany(u => u.ChatMembers)
                 .HasForeignKey(cp => cp.UserId)
@@ -25,6 +28,13 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
               .WithMany(c => c.ChatMembers)
               .HasForeignKey(cp => cp.ChatId)
              .OnDelete(DeleteBehavior.Cascade);
+
+            builder
+            .HasOne(x => x.Deleter)
+            .WithMany()
+            .HasForeignKey(x => x.DeletedBy)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
 
             builder.ToTable("ChatMembers");
         }

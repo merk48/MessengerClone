@@ -1,9 +1,10 @@
 ﻿using MessengerClone.Domain.Common.Interfaces;
+using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Domain.Utils.Enums;
 
 namespace MessengerClone.Domain.Entities
 {
-    public class MessageStatus : ICreateAt
+    public class MessageStatus : ICreateAt, ISoftDeletable
     {
         // Composite Key: MessageId + UserId + ChatId
         public int MessageId { get; set; }
@@ -13,7 +14,11 @@ namespace MessengerClone.Domain.Entities
         public DateTime? DeliveredAt { get; set; } // (Arrived/Delivered)
         public DateTime? ReadAt { get; set; } // (Seen/Read)
         public DateTime CreatedAt { get; set; } // (Sent) = Message.CreatedAt
-      
+        public bool IsDeleted { get; set; }
+        public DateTime? DateDeleted { get; set; }
+        public int? DeletedBy { get; set; }
+        public ApplicationUser? Deleter { get; set; }
+
         // Navigation
         public Message Message { get; set; } = null!;
         public ChatMember Member { get; set; } = null!;

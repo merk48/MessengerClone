@@ -1,16 +1,19 @@
-﻿using MessengerClone.Domain.Common;
-using MessengerClone.Domain.Common.Interfaces;
+﻿using MessengerClone.Domain.Common.Interfaces;
 using MessengerClone.Domain.Entities.Identity;
 using MessengerClone.Domain.Utils.Enums;
 
 namespace MessengerClone.Domain.Entities
 {
-    public class ChatMember : ICreateAt 
+    public class ChatMember : ICreateAt, ISoftDeletable
     {
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public DateTime CreatedAt { get; set; }
         public enChatRole ChatRole { get; set; }
+        public bool IsDeleted { get; set; }
+        public DateTime? DateDeleted  { get; set; }
+        public int? DeletedBy  { get; set; }
+        public ApplicationUser? Deleter  { get; set; }
 
         // Navigation
         public ApplicationUser User { get; set; } = null!;

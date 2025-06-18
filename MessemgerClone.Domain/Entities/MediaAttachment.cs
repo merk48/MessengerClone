@@ -12,8 +12,7 @@ namespace MessengerClone.Domain.Entities
         public bool IsDeleted  {get; set; }
         public DateTime? DateDeleted  {get; set; }
         public int? DeletedBy  {get; set; }
-
+        public ApplicationUser? Deleter { get; set; }
         public Message Message { get; set; } = null!;
-        public ApplicationUser? Deleter  {get; set; }
     }
 }

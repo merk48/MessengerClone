@@ -50,11 +50,11 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
                 .IsRequired(false);
 
             builder
-            .HasOne(x => x.Deleter)
-            .WithMany()
-            .HasForeignKey(x => x.DeletedBy)
-            .IsRequired(false)
-            .OnDelete(DeleteBehavior.Restrict);
+                .HasOne(x => x.Deleter)
+                .WithMany()
+                .HasForeignKey(x => x.DeletedBy)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
 
 
             builder.UseTphMappingStrategy();
