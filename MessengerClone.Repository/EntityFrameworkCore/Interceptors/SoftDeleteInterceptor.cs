@@ -45,7 +45,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
 
 
 
-            // Cascade soft delete: Conversation → Messages
+            // Cascade soft delete: Chat → Messages
             var convEntries = context.ChangeTracker
                 .Entries<Chat>()
                 .Where(e => e.Entity.IsDeleted && e.State == EntityState.Modified);

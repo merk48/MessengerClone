@@ -15,6 +15,7 @@ using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.Messages.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.DTOs;
+using MessengerClone.Service.Features.Users.Interfaces;
 using MessengerClone.Service.Features.Users.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,7 +25,7 @@ using System.Linq.Expressions;
 namespace MessengerClone.Service.Features.Chats.Services
 {
     public class ChatService(IUnitOfWork _unitOfWork, IMapper _mapper,IChatMemeberService _memeberService,
-            IMessageStatusService _messageStatusService, IFileService _FileService, ILogger<ChatService> _logger)
+            IMessageStatusService _messageStatusService, IFileService _FileService, IUserService _userService, ILogger<ChatService> _logger)
         : IChatService
     {
       
@@ -162,7 +163,7 @@ namespace MessengerClone.Service.Features.Chats.Services
                 }
 
                 ChatMetadataDto chatDto = await MapperHelper.BuildChatMetadataDto(chat, currentUserId, _messageStatusService, _mapper);
-              
+
                 return Result<ChatMetadataDto>.Success(chatDto);
 
             }
@@ -232,7 +233,18 @@ namespace MessengerClone.Service.Features.Chats.Services
                     return Result<DirectChatMetadataDto>.Success(existingDirectDto);
                 }
 
-                DirectChat directEntity = _mapper.Map<DirectChat>(dto);
+                var otherUserResult = await _userService.GetUserByIdAsync(dto.OtherMemberId,cancellationToken);
+                if (!otherUserResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<DirectChatMetadataDto>.Failure("Failed to save the chat details.");
+                }
+
+                DirectChat directEntity = _mapper.Map<DirectChat>(dto, opt =>
+                {
+                    opt.Items["Title"] = otherUserResult.Data!.Username;
+                });
+
                 directEntity.LastMessage = new();
 
                  await _unitOfWork.Repository<Chat>().AddAsync(directEntity);

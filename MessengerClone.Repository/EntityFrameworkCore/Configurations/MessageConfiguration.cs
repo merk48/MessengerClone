@@ -32,6 +32,10 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
             builder.Property(m => m.SenderId)
                .IsRequired();
 
+            // user 
+            // chat => members + messages
+            // messages => media + reaction + statuses
+
             builder
                 .HasOne(m => m.Chat)
                 .WithMany(c => c.Messages)
