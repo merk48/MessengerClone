@@ -74,16 +74,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value + UnreadCount); // test this
 
-                var messages = await query.ToListAsync();
 
-               var messageDtos = await query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
+                var messages = await query.ToListAsync(cancellationToken);
 
-                //foreach (var msg in messages)
-                //{
-                //    var dto = _mapper.Map<MessageDto>(message);
+                var messageDtos = _mapper.Map<List<MessageDto>>(messages, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
-                //    messageDtos.Add(dto);
-                //}
 
                 if (page.HasValue && size.HasValue)
                 {
@@ -151,9 +149,9 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     , include: x => x.Include(x => x.Sender)
                                      .ThenInclude(x => x.User)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageStatuses)
+                                     .Include(x => x.MessageStatuses.Where(ms => ms.UserId != currentUserId))
                                         .ThenInclude(x => x.Member)
-                                        .ThenInclude(x => x.User)
+                                            .ThenInclude(x => x.User)
                                      .Include(x => x.MessageReactions)
                                         .ThenInclude(x => x.Member)
                                         .ThenInclude(x => x.User));
@@ -162,8 +160,11 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
-                entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                //entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
 
                 return Result<MessageDto>.Success(messageDto);
@@ -322,7 +323,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to pin the message!");
 
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -360,7 +364,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to unpin the message!");
 
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -408,7 +415,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
                 }
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
             }
@@ -444,7 +454,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (!saveResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
 
-                MessageDto messageDto = _mapper.Map<MessageDto>(entity);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return messageDto is not null
                     ? Result<MessageDto>.Success(messageDto)

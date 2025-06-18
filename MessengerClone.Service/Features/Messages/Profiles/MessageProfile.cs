@@ -13,7 +13,10 @@ namespace MessengerClone.Service.Features.Messages.Profiles
                 .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt))
                 .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.Sender))
                 .ForMember(dest => dest.Attachment, opt => opt.MapFrom(src => src.Attachment))
-                .ForMember(dest => dest.Statuses, opt => opt.MapFrom(src => src.MessageStatuses))
+                 .ForMember(dest => dest.Statuses, opt =>
+                    opt.MapFrom((src, dest, destMember, context) =>
+                        src.MessageStatuses
+                            .Where(ms => ms.UserId != (int)context.Items["CurrentUserId"])))
                 .ForMember(dest => dest.Reactions, opt => opt.MapFrom(src => src.MessageReactions));
 
             CreateMap<LastMessageSnapshot, LastMessageDto>();

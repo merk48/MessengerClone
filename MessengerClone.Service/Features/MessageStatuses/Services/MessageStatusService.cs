@@ -13,6 +13,7 @@ using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
+using Twilio.TwiML.Messaging;
 
 namespace MessengerClone.Service.Features.MessageStatuses.Services
 {
@@ -112,6 +113,8 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                 status.Status = enMessageStatus.Read;
                 status.ReadAt = DateTime.UtcNow;
 
+                await _unitOfWork.Repository<MessageStatus>().UpdateAsync(status);
+
                 var saveReult = await _unitOfWork.SaveChangesAsync();
 
                 return saveReult.Succeeded
@@ -126,13 +129,16 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
             }
         }
 
-        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int chatId, int messageId)
+        public async Task<Result<DataResult<MessageStatusDto>>> GetStatusesForMessageAsync(int chatId, int messageId, int currentUserId, CancellationToken cancellationToken)
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+               
                 var query = _unitOfWork.Repository<MessageStatus>().Table
                         .AsNoTracking()
-                        .Where(x => x.MessageId == messageId).AsQueryable();
+                        .Where(x => x.MessageId == messageId && x.UserId != currentUserId)
+                        .AsQueryable();
 
                 var messageStatuseDtos = await query.ProjectTo<MessageStatusDto>(_mapper.ConfigurationProvider).ToListAsync();
 
@@ -170,6 +176,8 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
         {
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 var query = _unitOfWork.Repository<MessageStatus>().Table
                      .Where(x => x.Message.ChatId == chatId && x.UserId == currentUserId && x.Status != enMessageStatus.Read)
                      .Include(x => x.Message)
@@ -177,7 +185,7 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                      .Distinct()
                      .Include(x => x.Sender)
                      .Include(x => x.Attachment)
-                     .Include(x => x.MessageStatuses)
+                     .Include(m => m.MessageStatuses.Where(ms => ms.UserId != currentUserId))
                      .Include(x => x.MessageReactions)
                      .OrderByDescending(x => x.CreatedAt)
                      .AsQueryable();
@@ -188,18 +196,12 @@ namespace MessengerClone.Service.Features.MessageStatuses.Services
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value);
 
-                //var messages = await query.ToListAsync();
+                var messages = await query.ToListAsync(cancellationToken);
 
-                //List<MessageDto> messageDtos = new();
-
-                var messageDtos = await query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
-
-                //foreach (var msg in messages)
-                //{
-                //    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
-
-                //    messageDtos.Add(dto);
-                //}
+                var messageDtos = _mapper.Map<List<MessageDto>>(messages, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 if (page.HasValue && size.HasValue)
                 {
