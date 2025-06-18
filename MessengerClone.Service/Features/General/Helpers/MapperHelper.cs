@@ -13,21 +13,22 @@ namespace MessengerClone.Service.Features.General.Helpers
 {
     public static class MapperHelper
     {
-        public static async Task<MessageDto> BuildMessageDto(Message message, IUserService _userService, IMapper _mapper, CancellationToken cancellationToken)
-        {
-            var isLockedResult = await _userService.IsLockedOutAsync(message.Sender, cancellationToken);
-            if (!isLockedResult.Succeeded)
-                throw new InvalidOperationException("User lock out status fetch failed.");
+        //public static async Task<MessageDto> BuildMessageDto(Message message, IUserService _userService, IMapper _mapper, CancellationToken cancellationToken)
+        //{
+        //    var isLockedResult = await _userService.IsLockedOutAsync(message.Sender, cancellationToken);
+        //    if (!isLockedResult.Succeeded)
+        //        throw new InvalidOperationException("User lock out status fetch failed.");
 
-            var rolesResult = await _userService.GetRolesAsync(message.Sender, cancellationToken);
-            if (!rolesResult.Succeeded)
-                throw new InvalidOperationException("User roles fetch failed.");
-
-            return _mapper.Map<MessageDto>(message, opt => {
-                opt.Items["IsLocked"] = isLockedResult.Data;
-                opt.Items["Roles"] = rolesResult.Data;
-            });
-        }
+        //    var rolesResult = await _userService.GetRolesAsync(message.Sender, cancellationToken);
+        //    if (!rolesResult.Succeeded)
+        //        throw new InvalidOperationException("User roles fetch failed.");
+        
+        //    return _mapper.Map<MessageDto>(message, opt => {
+        //        opt.Items["IsLocked"] = isLockedResult.Data;
+        //        opt.Items["Roles"] = rolesResult.Data;
+        //        //opt.Items["JoinedAt"] = DateTime.UtcNow;
+        //    });
+        //}
 
         public static async Task<UserDto> BuildUserDto(ApplicationUser user, UserManager<ApplicationUser> _userService, IMapper _mapper)
         {

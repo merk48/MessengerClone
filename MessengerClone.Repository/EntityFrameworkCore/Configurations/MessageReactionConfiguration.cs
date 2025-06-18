@@ -8,7 +8,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<MessageReaction> builder)
         {
-            builder.HasKey(mr => new { mr.UserId, mr.MessageId });
+            builder.HasKey(mr => new { mr.MessageId, mr.UserId, mr.ChatId});
 
             builder.Property(mr => mr.ReactionType)
                 .HasConversion<string>() //enMessageReactionType
@@ -18,16 +18,19 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
              .IsRequired();
 
             builder
-                .HasOne(mr => mr.User)
-                .WithMany(u => u.MessageReactions)
-                .HasForeignKey(mr => mr.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder
                 .HasOne(mr => mr.Message)
                 .WithMany(m => m.MessageReactions)
                 .HasForeignKey(mr => mr.MessageId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            builder
+                .HasOne(mr => mr.Member)
+                .WithMany(cm => cm.MessageReactions)
+                .HasForeignKey(x => new { x.UserId, x.ChatId })
+                .HasPrincipalKey(cm => new { cm.UserId, cm.ChatId })
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(mr => new { mr.UserId, mr.ChatId });
 
             builder.ToTable("MessageReactions");
         }

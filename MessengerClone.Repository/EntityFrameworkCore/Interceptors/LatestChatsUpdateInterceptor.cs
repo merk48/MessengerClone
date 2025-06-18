@@ -44,7 +44,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
                         Id = msg.Id,
                         Content = msg.Content,
                         SentAt = msg.CreatedAt,
-                        SenderUsername = msg.Sender.UserName!,
+                        SenderUsername = msg.Sender.User.UserName!,
                         Type = msg.Type
                     };
 

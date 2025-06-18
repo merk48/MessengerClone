@@ -8,12 +8,10 @@ namespace MessengerClone.Service.Features.MessageStatuses.DTOs
     { 
         public int MessageId { get; set; }
         public int UserId { get; set; }
+        public enMessageStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; }
         public DateTime? DeliveredAt { get; set; }
         public DateTime? ReadAt { get; set; } 
-        public DateTime CreatedAt { get; set; }
-        public enMessageStatus Status { get; set; }
-
-        public ChatMemberDto Sender { get; set; } = null!;
-
+        public ChatMemberDto Member { get; set; } = null!;
     }
 }

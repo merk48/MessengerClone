@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Enums;
@@ -7,9 +8,9 @@ using MessengerClone.Service.Features.Chats.Interfaces;
 using MessengerClone.Service.Features.DTOs;
 using MessengerClone.Service.Features.General.DTOs;
 using MessengerClone.Service.Features.General.Extentions;
-using MessengerClone.Service.Features.General.Helpers;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.Messages.DTOs;
+using MessengerClone.Service.Features.MessageStatuses.DTOs;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.Users.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +20,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 {
           
     public class MessageService(IUnitOfWork _unitOfWork, IMapper _mapper, IChatMemeberService _memeberService,IMediaAttachmentService _attachmentService,
-        IMessageStatusService _messageStatusService, IUserService _userService , IChatService _chatService) 
+        IMessageStatusService _messageStatusService , IChatService _chatService) 
         : IMessageService     
     {
         public async Task<Result<DataResult<MessageDto>>> GetChatMessagesForUserAsync(int chatId, int currentUserId,CancellationToken cancellationToken, int? page = null, int? size = null,string? strFilter = null, Expression<Func<Message, bool>>? filter = null)
@@ -54,7 +55,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                         .AsNoTracking()
                         .Include(x => x.Sender)
                         .Include(x => x.Attachment)
-                        .Include(x => x.MessageInfo)
+                        .Include(x => x.MessageStatuses)
                         .Include(x => x.MessageReactions)
                         .Where(x => x.ChatId == chatId)
                         .AsQueryable();
@@ -73,16 +74,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (page.HasValue && size.HasValue)
                     query = query.Pagination(page.Value, size.Value + UnreadCount); // test this
 
-                var messages = await query.ToListAsync();
 
-                List<MessageDto> messageDtos = new();
+                var messages = await query.ToListAsync(cancellationToken);
 
-                foreach (var msg in messages)
+                var messageDtos = _mapper.Map<List<MessageDto>>(messages, opt =>
                 {
-                    var dto = await MapperHelper.BuildMessageDto(msg, _userService, _mapper, cancellationToken);
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
-                    messageDtos.Add(dto);
-                }
 
                 if (page.HasValue && size.HasValue)
                 {
@@ -121,7 +120,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.ChatId == chatId && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -144,21 +143,31 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-               
+
                 Message? entity = await _unitOfWork.Repository<Message>()
-                    .GetAsync(x => x.Id == id && x.SenderId ==currentUserId 
-                    ,include : x=> x.Include(x => x.Sender)
+                    .GetAsync(x => x.Id == id && x.SenderId == currentUserId
+                    , include: x => x.Include(x => x.Sender)
+                                     .ThenInclude(x => x.User)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
-                                     .Include(x => x.MessageReactions));
+                                     .Include(x => x.MessageStatuses.Where(ms => ms.UserId != currentUserId))
+                                        .ThenInclude(x => x.Member)
+                                            .ThenInclude(x => x.User)
+                                     .Include(x => x.MessageReactions)
+                                        .ThenInclude(x => x.Member)
+                                        .ThenInclude(x => x.User));
+
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity,_userService ,_mapper, cancellationToken) ;
+                //entity.MessageStatuses = entity.MessageStatuses.Where(x => x.UserId != currentUserId).ToList();
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
+
 
                 return Result<MessageDto>.Success(messageDto);
-
             }
             catch (Exception)
             {
@@ -223,14 +232,48 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
 
                 #endregion
 
+                // add Message Status
+                // as number of msg'chat members should add status to this msg wil all default values
+                var getChatResult = await _chatService.GetChatMetadataById(chatId, senderId, cancellationToken);
+                if (!getChatResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<MessageDto>.Failure(getChatResult.ToString());
+                }
 
+                List<AddMessageStatusDto> info = new();
+
+                foreach (var member in getChatResult.Data!.Members)
+                {
+                    enMessageStatus status = enMessageStatus.Sent;
+                    if (member.UserId == senderId)
+                        status = enMessageStatus.Read;
+
+                    info.Add(new AddMessageStatusDto()
+                    {
+                        MessageId = entity.Id,
+                        UserId = member.UserId,
+                        ChatId = chatId,
+                        CreatedAt = entity.CreatedAt,
+                        Status = status
+                    });
+                }
+
+                var addMessageInfoResult = await _messageStatusService.AddMessageInfoAsync(info);
+
+                if (!addMessageInfoResult.Succeeded)
+                {
+                    if (hasOwnTr) await _unitOfWork.RollbackAsync();
+                    return Result<MessageDto>.Failure(addMessageInfoResult.ToString());
+                }
+                
                 var messageDtoResult = await GetMessageByIdForUserAsync(entity.Id, senderId,cancellationToken);
 
                 if (!messageDtoResult.Succeeded )
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
 
-                var updateChatLastMessageResult = await _chatService.UpdateGroupLastMessageAsync(chatId, senderId, messageDtoResult.Data, cancellationToken);
+                var updateChatLastMessageResult = await _chatService.UpdateChatLastMessageAsync(chatId, senderId, messageDtoResult.Data!, cancellationToken);
                 if (!updateChatLastMessageResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to add the message.");
 
@@ -264,14 +307,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = true;
-                entity.PinnedById = currentUserId;
+                entity.PinnedBy = currentUserId;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -280,7 +323,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to pin the message!");
 
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -302,14 +348,14 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                     , include: x => x.Include(x => x.Sender)
                                      .Include(x => x.Attachment)
-                                     .Include(x => x.MessageInfo)
+                                     .Include(x => x.MessageStatuses)
                                      .Include(x => x.MessageReactions));
 
                 if (entity == null)
                     return Result<MessageDto>.Failure("Message not found!");
 
                 entity.IsPinned = false;
-                entity.PinnedById = null;
+                entity.PinnedBy = null;
 
                 await _unitOfWork.Repository<Message>().UpdateAsync(entity);
                 var updateSaveResult = await _unitOfWork.SaveChangesAsync();
@@ -318,7 +364,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to unpin the message!");
 
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
 
@@ -340,7 +389,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                    .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                    , include: x => x.Include(x => x.Sender)
                                     .Include(x => x.Attachment)
-                                    .Include(x => x.MessageInfo)
+                                    .Include(x => x.MessageStatuses)
                                     .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -366,7 +415,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
                 }
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return Result<MessageDto>.Success(messageDto);
             }
@@ -387,7 +439,7 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                    .GetAsync(x => x.Id == Id && x.SenderId == currentUserId
                    , include: x => x.Include(x => x.Sender)
                                     .Include(x => x.Attachment)
-                                    .Include(x => x.MessageInfo)
+                                    .Include(x => x.MessageStatuses)
                                     .Include(x => x.MessageReactions));
 
                 if (entity == null)
@@ -402,7 +454,10 @@ namespace MessengerClone.Service.Features.Messages.Interfaces
                 if (!saveResult.Succeeded)
                     return Result<MessageDto>.Failure("Failed to delete the message from the database");
 
-                MessageDto messageDto = await MapperHelper.BuildMessageDto(entity, _userService, _mapper, cancellationToken);
+                MessageDto messageDto = _mapper.Map<MessageDto>(entity, opt =>
+                {
+                    opt.Items["CurrentUserId"] = currentUserId;
+                });
 
                 return messageDto is not null
                     ? Result<MessageDto>.Success(messageDto)

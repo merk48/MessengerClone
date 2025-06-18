@@ -1,17 +1,77 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using MessengerClone.Domain.Entities;
 using MessengerClone.Domain.IUnitOfWork;
 using MessengerClone.Domain.Utils.Global;
 using MessengerClone.Service.Features.ChatMembers.DTOs;
 using MessengerClone.Service.Features.Chats.Interfaces;
 using MessengerClone.Service.Features.General.DTOs;
+using MessengerClone.Service.Features.General.Extentions;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using System.Linq;
 
 
 namespace MessengerClone.Service.Features.ChatMembers.Services
 {
     public class ChatMemeberService(IUnitOfWork _unitOfWork, IMapper _mapper) : IChatMemeberService
     {
+        public async Task<Result<DataResult<ChatMemberDto>>> GetAllChatMembersAsync(int chatId, CancellationToken cancellationToken, int? page = null, int? size = null, string? strFilter = null, Expression<Func<ChatMember, bool>>? filter = null)
+        {
+            try
+            {
+                var query = _unitOfWork.Repository<ChatMember>()
+                    .Table.Where(x => x.ChatId == chatId).AsQueryable();
+
+                if (filter is not null)
+                    query = query.Where(filter);
+
+                if (strFilter is not null)
+                    query = query.Where(FilterExpressionHelper<ChatMember>.GetFilter(strFilter));
+
+                query = query
+                    .OrderByDescending(x => x.User.UserName)
+                    .ThenByDescending(c => c.CreatedAt);
+
+                var totalCount = await query.CountAsync();
+
+                if (page.HasValue && size.HasValue)
+                    query = query.Pagination(page.Value, size.Value);
+
+                //var members = await query.ToListAsync();
+                //var memberDtos = _mapper.Map<List<ChatMemberDto>>(members);
+                var memberDtos = await query.ProjectTo<ChatMemberDto>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
+
+                if (page.HasValue && size.HasValue)
+                {
+                    return Result<DataResult<ChatMemberDto>>.Success(
+                        new PaginatedResult<ChatMemberDto>
+                        {
+                            Data = memberDtos ?? Enumerable.Empty<ChatMemberDto>(),
+                            TotalRecordsCount = totalCount,
+                            PageNumber = page.Value,
+                            PageSize = size.Value
+                        });
+                }
+
+                return Result<DataResult<ChatMemberDto>>.Success(
+                    new DataResult<ChatMemberDto>
+                    {
+                        Data = memberDtos ?? Enumerable.Empty<ChatMemberDto>(),
+                        TotalRecordsCount = totalCount
+                    });
+
+            }
+            catch (OperationCanceledException ex)
+            {
+                return Result<DataResult<ChatMemberDto>>.Failure("Request was canceled");
+            }
+            catch (Exception ex)
+            {
+                return Result<DataResult<ChatMemberDto>>.Failure("Failed to retrieve chat members from the database");
+            }
+        }
+        
         public async Task<Result<ChatMemberDto>> GetMemberInChatAsync(int userId, int chatId)
         {
             try

@@ -37,10 +37,11 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
                     entry.State = EntityState.Modified;
                     sd.IsDeleted = true;
                     sd.DateDeleted = now;
-                    sd.DeletedById = _userContext.UserId;
+                    sd.DeletedBy = _userContext.UserId;
                 }
             }
 
+            // Cascade soft delete: Conversation → Members
             // Cascade soft delete: Conversation → Messages
             var convEntries = context.ChangeTracker
                 .Entries<Chat>()
@@ -55,20 +56,22 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
                     {
                         msg.IsDeleted = true;
                         msg.DateDeleted = now;
-                        msg.DeletedById = _userContext.UserId;
+                        msg.DeletedBy = _userContext.UserId;
 
                         // Soft-delete MediaAttachment if exists
                         if (msg.Attachment != null && !msg.Attachment.IsDeleted)
                         {
                             msg.Attachment.IsDeleted = true;
                             msg.Attachment.DateDeleted = now;
-                            msg.Attachment.DeletedById = _userContext.UserId;
+                            msg.Attachment.DeletedBy = _userContext.UserId;
                         }
                     }
                 }
             }
 
             // Cascade soft delete: Message → MediaAttachment (for standalone deleted messages)
+            // Cascade soft delete: Message → Statuses (for standalone deleted messages)
+            // Cascade soft delete: Message → Reactions (for standalone deleted messages)
             var messageEntries = context.ChangeTracker
                 .Entries<Message>()
                 .Where(e => e.Entity.IsDeleted && e.State == EntityState.Modified);
@@ -80,7 +83,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Interceptors
                 {
                     msg.Attachment.IsDeleted = true;
                     msg.Attachment.DateDeleted = now;
-                    msg.Attachment.DeletedById = _userContext.UserId;
+                    msg.Attachment.DeletedBy = _userContext.UserId;
                 }
             }
         }

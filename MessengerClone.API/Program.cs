@@ -31,7 +31,6 @@ using MessengerClone.Service.Features.Files.Services;
 using MessengerClone.Service.Features.MediaAttachments.Interfaces;
 using MessengerClone.Service.Features.MediaAttachments.Services;
 using MessengerClone.Service.Features.MessageReactions.Interfaces;
-using MessengerClone.Service.Features.MessageReactions.Services;
 using MessengerClone.Service.Features.Messages.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Interfaces;
 using MessengerClone.Service.Features.MessageStatuses.Services;
@@ -60,6 +59,7 @@ using Newtonsoft.Json;
 using System.Text.Json.Serialization;
 using MessengerClone.Service.Features.Chats.Validators;
 using MessengerClone.Service.Features.Chats.DTOs;
+using MessengerClone.Service.Features.MessageReactions.Services;
 
 namespace MessengerClone
 {

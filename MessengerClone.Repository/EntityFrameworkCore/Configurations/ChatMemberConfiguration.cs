@@ -8,7 +8,7 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
     {
         public void Configure(EntityTypeBuilder<ChatMember> builder)
         {
-            builder.HasKey(cp => new { cp.ChatId, cp.UserId });
+            builder.HasKey(cp => new { cp.UserId, cp.ChatId });
 
             builder.Property(x => x.ChatRole)
                    .HasConversion<string>();
@@ -17,13 +17,14 @@ namespace MessengerClone.Repository.EntityFrameworkCore.Configurations
              .IsRequired();
 
             builder.HasOne(cp => cp.User)
-                .WithMany(u => u.ConversationParticipants)
-                .HasForeignKey(cp => cp.UserId);
-
+                .WithMany(u => u.ChatMembers)
+                .HasForeignKey(cp => cp.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+           
             builder.HasOne(cp => cp.Chat)
               .WithMany(c => c.ChatMembers)
-              .HasForeignKey(cp => cp.ChatId);
-
+              .HasForeignKey(cp => cp.ChatId)
+             .OnDelete(DeleteBehavior.Cascade);
 
             builder.ToTable("ChatMembers");
         }

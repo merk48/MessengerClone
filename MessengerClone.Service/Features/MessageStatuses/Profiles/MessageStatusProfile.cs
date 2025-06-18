@@ -9,9 +9,11 @@ namespace MessengerClone.Service.Features.MessageStatuses.Profiles
         public MessageStatusProfile()
         {
             CreateMap<MessageStatus, MessageStatusDto>()
-                 .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.User));
+            .ForMember(dest => dest.Member, opt => opt.MapFrom(src => src.Member));
 
-            CreateMap<CreateMessageStatusDto, MessageStatus>();
+            CreateMap<AddMessageStatusDto, MessageStatus>();
+                //.ForMember(dest => dest.Status, opt => opt.MapFrom(src => enMessageStatus.Sent));
+
         }
     }
 }

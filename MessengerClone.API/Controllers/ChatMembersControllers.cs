@@ -100,6 +100,30 @@ namespace MessengerClone.API.Controllers
         }
 
 
+        [HttpGet(Name = "GetAllChatMembers")]
+        public async Task<IActionResult> GetAllChatMembersAsync([FromRoute] int chatId, CancellationToken cancellationToken, [FromQuery] int? page = null, [FromQuery] int? size = null, [FromQuery] string? search = null)
+        {
+            try
+            {
+                var result = await _chatMemberService.GetAllChatMembersAsync(chatId, cancellationToken, page, size, search);
+
+                return result.Succeeded
+                    ? SuccessResponse(result.Data, $"Chat members retrieved successfuly")
+                    : StatusCodeResponse(StatusCodes.Status500InternalServerError, "RETRIEVAL_ERROR", result.ToString());
+
+            }
+            catch (HttpRequestException ex)
+            {
+                //Log.Error(ex.Message);
+                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Service error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                //Log.Error(ex.Message);
+                return StatusCodeResponse(StatusCodes.Status500InternalServerError, "ERROR_ACCRUED", "An error accrued", $"Unexpected error: {ex.Message}");
+            }
+        }
+
 
         [HttpPost("me", Name = "JoinToChat")]
         public async Task<IActionResult> JoinToChatAsync([FromRoute] int chatId)
@@ -109,7 +133,7 @@ namespace MessengerClone.API.Controllers
                 if (_userContext.UserId <= 0)
                     return UnauthorizedResponse("INVALID_USER_ID", "User ID not valid.", "User should login first."); 
                 
-                var result = await _chatMemberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = _userContext.UserId ,ChatRole = enChatRole.ChatMember}, chatId);
+                var result = await _chatMemberService.AddMemberToChatAsync(new AddChatMemberDto() {UserId = _userContext.UserId ,ChatRole = enChatRole.GroupMember}, chatId);
 
                 return result.Succeeded
                     ? CreatedResponse("GetMemberInChat", new { chatId = chatId , Id = _userContext.UserId}, result.Data!, $"Chat member created successfully.")
