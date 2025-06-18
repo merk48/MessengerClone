@@ -1,7 +1,11 @@
 ﻿using FluentValidation;
 using MessengerClone.Domain.Utils.Enums;
+using MessengerClone.Service.Features.ChatMembers.DTOs;
 using MessengerClone.Service.Features.General.Helpers;
+using MessengerClone.Service.Features.MediaAttachments.DTOs;
+using MessengerClone.Service.Features.MessageReactions.DTOs;
 using MessengerClone.Service.Features.Messages.DTOs;
+using MessengerClone.Service.Features.MessageStatuses.DTOs;
 
 
 namespace MessengerClone.Service.Features.Messages.Validators
@@ -33,5 +37,4 @@ namespace MessengerClone.Service.Features.Messages.Validators
         }
 
     }
-
 }

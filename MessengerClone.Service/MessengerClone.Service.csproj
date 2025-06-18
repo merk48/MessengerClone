@@ -27,11 +27,4 @@
     <ProjectReference Include="..\MessemgerClone.Domain\MessengerClone.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Features\F\Services\" />
-    <Folder Include="Features\F\Interfaces\" />
-    <Folder Include="Features\F\Profiles\" />
-    <Folder Include="Features\F\DTOs\" />
-  </ItemGroup>
-
 </Project>

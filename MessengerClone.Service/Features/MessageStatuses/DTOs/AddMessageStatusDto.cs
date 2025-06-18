@@ -1,6 +1,4 @@
-﻿using MessengerClone.Domain.Entities.Identity;
-using MessengerClone.Domain.Utils.Enums;
-using MessengerClone.Service.Features.Users.DTOs;
+﻿using MessengerClone.Domain.Utils.Enums;
 
 namespace MessengerClone.Service.Features.MessageStatuses.DTOs
 {
